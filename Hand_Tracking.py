@@ -92,6 +92,13 @@ def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None)
     stop_button_y = pause_button_y + button_h + 10
     draw_button(ui_frame, stop_button_x, stop_button_y,
                 button_w, button_h, "STOP", (0, 0, 255))
+
+    # Mirror toggle button (below stop button)
+    mirror_button_x = frame_w + button_margin
+    mirror_button_y = stop_button_y + button_h + 10
+    mirror_text = "MIRROR ON" if running_state['mirrored'] else "MIRROR OFF"
+    draw_button(ui_frame, mirror_button_x, mirror_button_y,
+                button_w, button_h, mirror_text, (128, 0, 128))
     
     return ui_frame, {
         'panel_width': panel_width,
@@ -105,6 +112,12 @@ def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None)
         'stop_button': {
             'x': stop_button_x,
             'y': stop_button_y,
+            'w': button_w,
+            'h': button_h
+        },
+        'mirror_button': {
+            'x': mirror_button_x,
+            'y': mirror_button_y,
             'w': button_w,
             'h': button_h
         }
@@ -171,7 +184,7 @@ def main():
     frame_h, frame_w = first_frame.shape[:2]
     
     # Program state
-    running_state = {'running': True, 'paused': False}
+    running_state = {'running': True, 'paused': False, 'mirrored': mirrored_camera}
     
     # Create initial UI to determine layout
     ui_frame, ui_layout = create_ui_elements(first_frame, running_state)
@@ -190,9 +203,15 @@ def main():
                 
                 # Check pause button
                 pause_btn = ui_layout['pause_button']
-                if (pause_btn['x'] <= x <= pause_btn['x'] + pause_btn['w'] and 
+                if (pause_btn['x'] <= x <= pause_btn['x'] + pause_btn['w'] and
                     pause_btn['y'] <= y <= pause_btn['y'] + pause_btn['h']):
                     param['paused'] = not param['paused']
+
+                # Check mirror button
+                mirror_btn = ui_layout['mirror_button']
+                if (mirror_btn['x'] <= x <= mirror_btn['x'] + mirror_btn['w'] and
+                    mirror_btn['y'] <= y <= mirror_btn['y'] + mirror_btn['h']):
+                    param['mirrored'] = not param['mirrored']
     
     # Create a window and set the callback
     window_name = 'Hand and Pose Tracking'
@@ -266,7 +285,7 @@ def main():
                 for hand_landmarks, hand_info in zip(hand_results.multi_hand_landmarks,
                                                      hand_results.multi_handedness):
                     label = hand_info.classification[0].label
-                    if mirrored_camera:
+                    if running_state['mirrored']:
                         label = "Left" if label == "Right" else "Right"
                     if label != tracked_hand_label:
                         # Skip detections that are not the desired hand
