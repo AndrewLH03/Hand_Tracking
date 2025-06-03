@@ -3,6 +3,109 @@ import mediapipe as mp
 import numpy as np
 import time
 
+def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None):
+    """Create and position all UI elements on the frame"""
+    frame_h, frame_w = frame.shape[:2]
+    
+    # UI panel dimensions
+    panel_width = 300  # Added width for the side panel
+    button_w = 200
+    button_h = 40
+    button_margin = 10
+    
+    # Create a wider frame with space on the right
+    ui_frame = np.zeros((frame_h, frame_w + panel_width, 3), dtype=np.uint8)
+    
+    # Copy the original frame to the left side
+    ui_frame[:, :frame_w, :] = frame
+    
+    # Right panel background (light gray)
+    ui_frame[:, frame_w:, :] = (40, 40, 40)
+    
+    # Coordinates panel in the top right
+    if right_elbow and right_wrist:
+        # Elbow coordinates
+        cv2.putText(ui_frame, "Elbow coordinates:", 
+                   (frame_w + 10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+        cv2.putText(ui_frame, f"X: {right_elbow[0]:.2f}", 
+                   (frame_w + 20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        cv2.putText(ui_frame, f"Y: {right_elbow[1]:.2f}", 
+                   (frame_w + 20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        cv2.putText(ui_frame, f"Z: {right_elbow[2]:.2f}", 
+                   (frame_w + 20, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        
+        # Wrist coordinates
+        cv2.putText(ui_frame, "Wrist coordinates:", 
+                   (frame_w + 10, 170), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+        cv2.putText(ui_frame, f"X: {right_wrist[0]:.2f}", 
+                   (frame_w + 20, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        cv2.putText(ui_frame, f"Y: {right_wrist[1]:.2f}", 
+                   (frame_w + 20, 230), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        cv2.putText(ui_frame, f"Z: {right_wrist[2]:.2f}", 
+                   (frame_w + 20, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+    
+    # Position buttons directly below the coordinate display
+    status_y = 290  # Just below the wrist coordinates which end at y=260
+    
+    # Status position
+    cv2.rectangle(ui_frame, 
+                 (frame_w + button_margin, status_y), 
+                 (frame_w + button_margin + button_w, status_y + button_h), 
+                 (70, 70, 70), -1)
+    
+    # Status text (centered)
+    status_text = "PAUSED" if running_state['paused'] else "RUNNING"
+    status_color = (0, 165, 255) if running_state['paused'] else (0, 255, 0)
+    text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+    text_x = frame_w + button_margin + (button_w - text_size[0]) // 2
+    cv2.putText(ui_frame, status_text, 
+               (text_x, status_y + 20),
+               cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
+    
+    # Pause button (below status)
+    pause_button_x = frame_w + button_margin
+    pause_button_y = status_y + button_h + 10
+    cv2.rectangle(ui_frame, 
+                 (pause_button_x, pause_button_y), 
+                 (pause_button_x + button_w, pause_button_y + button_h), 
+                 (255, 165, 0), -1)  # Orange
+    pause_text = "RESUME" if running_state['paused'] else "PAUSE"
+    text_size = cv2.getTextSize(pause_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+    text_x = pause_button_x + (button_w - text_size[0]) // 2
+    cv2.putText(ui_frame, pause_text, 
+               (text_x, pause_button_y + 27), 
+               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    
+    # Stop button (below pause button)
+    stop_button_x = frame_w + button_margin
+    stop_button_y = pause_button_y + button_h + 10
+    cv2.rectangle(ui_frame, 
+                 (stop_button_x, stop_button_y), 
+                 (stop_button_x + button_w, stop_button_y + button_h), 
+                 (0, 0, 255), -1)  # Red
+    text_size = cv2.getTextSize("STOP", cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+    text_x = stop_button_x + (button_w - text_size[0]) // 2
+    cv2.putText(ui_frame, "STOP", 
+               (text_x, stop_button_y + 27), 
+               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    
+    return ui_frame, {
+        'panel_width': panel_width,
+        'frame_width': frame_w,
+        'pause_button': {
+            'x': pause_button_x,
+            'y': pause_button_y,
+            'w': button_w,
+            'h': button_h
+        },
+        'stop_button': {
+            'x': stop_button_x,
+            'y': stop_button_y,
+            'w': button_w,
+            'h': button_h
+        }
+    }
+
 def main():
     # Initialize MediaPipe solutions
     mp_hands = mp.solutions.hands
@@ -45,36 +148,31 @@ def main():
     
     frame_h, frame_w = first_frame.shape[:2]
     
-    # Define button dimensions
-    button_w = 120
-    button_h = 40
-    button_margin = 10
-    
-    # Stop button (bottom)
-    stop_button_x = button_margin
-    stop_button_y = frame_h - button_h - button_margin
-    stop_button_color = (0, 0, 255)  # Red
-    
-    # Pause button (above stop button)
-    pause_button_x = button_margin
-    pause_button_y = stop_button_y - button_h - 5
-    pause_button_color = (255, 165, 0)  # Orange
-    
     # Program state
     running_state = {'running': True, 'paused': False}
+    
+    # Create initial UI to determine layout
+    ui_frame, ui_layout = create_ui_elements(first_frame, running_state)
     
     # Define mouse callback function for button clicks
     def mouse_callback(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            # Check stop button
-            if (stop_button_x <= x <= stop_button_x + button_w and 
-                stop_button_y <= y <= stop_button_y + button_h):
-                param['running'] = False
+            # Adjust x coordinate for the panel
+            adjusted_x = x
             
-            # Check pause button
-            elif (pause_button_x <= x <= pause_button_x + button_w and 
-                  pause_button_y <= y <= pause_button_y + button_h):
-                param['paused'] = not param['paused']
+            # Check if click is in side panel
+            if x >= ui_layout['frame_width']:
+                # Check stop button
+                stop_btn = ui_layout['stop_button']
+                if (stop_btn['x'] <= x <= stop_btn['x'] + stop_btn['w'] and 
+                    stop_btn['y'] <= y <= stop_btn['y'] + stop_btn['h']):
+                    param['running'] = False
+                
+                # Check pause button
+                pause_btn = ui_layout['pause_button']
+                if (pause_btn['x'] <= x <= pause_btn['x'] + pause_btn['w'] and 
+                    pause_btn['y'] <= y <= pause_btn['y'] + pause_btn['h']):
+                    param['paused'] = not param['paused']
     
     # Create a window and set the callback
     window_name = 'Hand and Pose Tracking'
@@ -82,7 +180,7 @@ def main():
     cv2.setMouseCallback(window_name, mouse_callback, running_state)
     
     # Display an initial message while loading
-    init_frame = np.zeros((frame_h, frame_w, 3), dtype=np.uint8)
+    init_frame = np.zeros((frame_h, frame_w + ui_layout['panel_width'], 3), dtype=np.uint8)
     cv2.putText(init_frame, "Initializing...", (frame_w//2-100, frame_h//2), 
                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
     cv2.imshow(window_name, init_frame)
@@ -177,12 +275,8 @@ def main():
                         cv2.circle(overlay, landmark_px, 5, (0, 255, 255), -1)
                         cv2.putText(overlay, str(i), landmark_px, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             
-            # If we have both elbow and wrist positions, display their coordinates
+            # If we have both elbow and wrist positions, display a vector connecting them
             if right_elbow and right_wrist:
-                # Display coordinates on frame
-                cv2.putText(overlay, f"Wrist: ({right_wrist[0]:.2f}, {right_wrist[1]:.2f}, {right_wrist[2]:.2f})", 
-                           (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                
                 # Draw vector from elbow to wrist
                 elbow_px = (int(right_elbow[0] * frame.shape[1]), int(right_elbow[1] * frame.shape[0]))
                 wrist_px = (int(right_wrist[0] * frame.shape[1]), int(right_wrist[1] * frame.shape[0]))
@@ -192,50 +286,11 @@ def main():
             alpha = 0.7  # Transparency factor
             cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
         
-        # Add a legend
-        cv2.rectangle(frame, (frame.shape[1] - 250, frame.shape[0] - 130), (frame.shape[1] - 10, frame.shape[0] - 10), (0, 0, 0), -1)
-        cv2.putText(frame, "Legend:", (frame.shape[1] - 240, frame.shape[0] - 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-        cv2.circle(frame, (frame.shape[1] - 230, frame.shape[0] - 70), 6, (0, 255, 0), -1)
-        cv2.putText(frame, "Hand Landmarks", (frame.shape[1] - 210, frame.shape[0] - 65), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-        cv2.circle(frame, (frame.shape[1] - 230, frame.shape[0] - 45), 6, (0, 0, 255), -1)
-        cv2.putText(frame, "Elbow", (frame.shape[1] - 210, frame.shape[0] - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-        cv2.circle(frame, (frame.shape[1] - 230, frame.shape[0] - 20), 6, (255, 0, 0), -1)
-        cv2.putText(frame, "Wrist", (frame.shape[1] - 210, frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-        
-        # Calculate right panel position
-        right_panel_x = frame_w - button_w - button_margin
-        
-        # Status position (top right)
-        status_height = 30
-        status_y = button_margin
-        cv2.rectangle(frame, (right_panel_x, status_y), 
-                 (right_panel_x + button_w, status_y + status_height), (70, 70, 70), -1)
-        
-        # Status text
-        status_text = "PAUSED" if running_state['paused'] else "RUNNING"
-        status_color = (0, 165, 255) if running_state['paused'] else (0, 255, 0)
-        cv2.putText(frame, status_text, (right_panel_x + 20, status_y + 20),
-               cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
-        
-        # Pause button (below status)
-        pause_button_x = right_panel_x
-        pause_button_y = status_y + status_height + 10
-        cv2.rectangle(frame, (pause_button_x, pause_button_y), 
-                 (pause_button_x + button_w, pause_button_y + button_h), pause_button_color, -1)
-        pause_text = "RESUME" if running_state['paused'] else "PAUSE"
-        cv2.putText(frame, pause_text, (pause_button_x + 20, pause_button_y + 27), 
-               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-        
-        # Stop button (below pause button)
-        stop_button_x = right_panel_x
-        stop_button_y = pause_button_y + button_h + 10
-        cv2.rectangle(frame, (stop_button_x, stop_button_y), 
-                 (stop_button_x + button_w, stop_button_y + button_h), stop_button_color, -1)
-        cv2.putText(frame, "STOP", (stop_button_x + 40, stop_button_y + 27), 
-               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        # Create UI elements with the current frame
+        ui_frame, ui_layout = create_ui_elements(frame, running_state, right_elbow, right_wrist)
         
         # Show the frame
-        cv2.imshow(window_name, frame)
+        cv2.imshow(window_name, ui_frame)
         
         # Break the loop on 'q' press
         key = cv2.waitKey(10) & 0xFF
