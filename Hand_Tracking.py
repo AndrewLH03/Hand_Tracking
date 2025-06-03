@@ -120,9 +120,10 @@ def main():
     hand_connection_drawing_spec = mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=3)
     
     # Initialize the models
+    # Detect up to two hands so we can explicitly choose the right one
     hands = mp_hands.Hands(
         static_image_mode=False,
-        max_num_hands=1,  # Only track one hand
+        max_num_hands=2,
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5
     )
@@ -243,9 +244,15 @@ def main():
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             
             # Extract more precise wrist position from hand tracking
-            if hand_results.multi_hand_landmarks:
-                for hand_landmarks in hand_results.multi_hand_landmarks:
-                    # Draw hand landmarks with custom specs
+            if hand_results.multi_hand_landmarks and hand_results.multi_handedness:
+                for hand_landmarks, hand_info in zip(hand_results.multi_hand_landmarks,
+                                                     hand_results.multi_handedness):
+                    label = hand_info.classification[0].label
+                    if label != "Right":
+                        # Skip left hand detections entirely
+                        continue
+
+                    # Draw landmarks only for the right hand
                     mp_drawing.draw_landmarks(
                         overlay,
                         hand_landmarks,
@@ -253,36 +260,27 @@ def main():
                         landmark_drawing_spec=hand_landmark_drawing_spec,
                         connection_drawing_spec=hand_connection_drawing_spec
                     )
-                    
-                    # Check if this is the right hand
-                    handedness = None
-                    if hand_results.multi_handedness:
-                        for hand_idx, hand_info in enumerate(hand_results.multi_handedness):
-                            if hand_idx == hand_results.multi_hand_landmarks.index(hand_landmarks):
-                                handedness = hand_info.classification[0].label
-                                
-                    # Only update wrist position if this is the right hand
-                    if handedness == "Right":
-                        right_wrist = [
-                            hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x,
-                            hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y,
-                            hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].z
-                        ]
-                    
-                    # Draw wrist point with label
+
+                    right_wrist = [
+                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x,
+                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y,
+                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].z
+                    ]
+
                     wrist_pixel = (
-                        int(right_wrist[0] * frame.shape[1]), 
+                        int(right_wrist[0] * frame.shape[1]),
                         int(right_wrist[1] * frame.shape[0])
                     )
                     cv2.circle(overlay, wrist_pixel, 10, (255, 0, 0), -1)
-                    cv2.putText(overlay, "WRIST", (wrist_pixel[0]+10, wrist_pixel[1]), 
+                    cv2.putText(overlay, "WRIST", (wrist_pixel[0]+10, wrist_pixel[1]),
                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
-                    
-                    # Label each finger landmark
+
                     for i, landmark in enumerate(hand_landmarks.landmark):
                         landmark_px = (int(landmark.x * frame.shape[1]), int(landmark.y * frame.shape[0]))
                         cv2.circle(overlay, landmark_px, 5, (0, 255, 255), -1)
-                        cv2.putText(overlay, str(i), landmark_px, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                        cv2.putText(overlay, str(i), landmark_px,
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                    break
             
             # If we have both elbow and wrist positions, display a vector connecting them
             if right_elbow is not None and right_wrist is not None:
