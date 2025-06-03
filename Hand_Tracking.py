@@ -285,7 +285,7 @@ def main():
                         cv2.putText(overlay, str(i), landmark_px, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             
             # If we have both elbow and wrist positions, display a vector connecting them
-            if right_elbow and right_wrist:
+            if right_elbow is not None and right_wrist is not None:
                 # Draw vector from elbow to wrist
                 elbow_px = (int(right_elbow[0] * frame.shape[1]), int(right_elbow[1] * frame.shape[0]))
                 wrist_px = (int(right_wrist[0] * frame.shape[1]), int(right_wrist[1] * frame.shape[0]))
