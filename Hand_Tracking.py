@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import time
 
 def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None):
     """Create and position all UI elements on the frame"""
@@ -19,7 +18,7 @@ def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None)
     # Copy the original frame to the left side
     ui_frame[:, :frame_w, :] = frame
     
-    # Right panel background (light gray)
+    # Right panel background (dark gray)
     ui_frame[:, frame_w:, :] = (40, 40, 40)
     
     # Coordinates panel in the top right
@@ -53,13 +52,14 @@ def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None)
                  (frame_w + button_margin + button_w, status_y + button_h), 
                  (70, 70, 70), -1)
     
-    # Status text (centered)
+    # Status text (centered horizontally and vertically)
     status_text = "PAUSED" if running_state['paused'] else "RUNNING"
     status_color = (0, 165, 255) if running_state['paused'] else (0, 255, 0)
     text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
     text_x = frame_w + button_margin + (button_w - text_size[0]) // 2
+    text_y = status_y + (button_h + text_size[1]) // 2  # Center vertically in the button
     cv2.putText(ui_frame, status_text, 
-               (text_x, status_y + 20),
+               (text_x, text_y),
                cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
     
     # Pause button (below status)
@@ -157,8 +157,6 @@ def main():
     # Define mouse callback function for button clicks
     def mouse_callback(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            # Adjust x coordinate for the panel
-            adjusted_x = x
             
             # Check if click is in side panel
             if x >= ui_layout['frame_width']:
@@ -253,12 +251,20 @@ def main():
                         connection_drawing_spec=hand_connection_drawing_spec
                     )
                     
-                    # Update wrist position with the hand model's more precise tracking
-                    right_wrist = [
-                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x,
-                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y,
-                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].z
-                    ]
+                    # Check if this is the right hand
+                    handedness = None
+                    if hand_results.multi_handedness:
+                        for hand_idx, hand_info in enumerate(hand_results.multi_handedness):
+                            if hand_idx == hand_results.multi_hand_landmarks.index(hand_landmarks):
+                                handedness = hand_info.classification[0].label
+                                
+                    # Only update wrist position if this is the right hand
+                    if handedness == "Right":
+                        right_wrist = [
+                            hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x,
+                            hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y,
+                            hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].z
+                        ]
                     
                     # Draw wrist point with label
                     wrist_pixel = (
