@@ -1,3 +1,4 @@
+import argparse
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -110,6 +111,23 @@ def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None)
     }
 
 def main():
+    parser = argparse.ArgumentParser(description="Hand and pose tracking demo")
+    parser.add_argument(
+        "--hand",
+        choices=["Right", "Left"],
+        default="Right",
+        help="Which hand to track",
+    )
+    parser.add_argument(
+        "--mirror",
+        action="store_true",
+        help="Set this flag if your camera feed is mirrored",
+    )
+    args = parser.parse_args()
+
+    tracked_hand_label = args.hand
+    mirrored_camera = args.mirror
+
     # Initialize MediaPipe solutions
     mp_hands = mp.solutions.hands
     mp_pose = mp.solutions.pose
@@ -248,8 +266,10 @@ def main():
                 for hand_landmarks, hand_info in zip(hand_results.multi_hand_landmarks,
                                                      hand_results.multi_handedness):
                     label = hand_info.classification[0].label
-                    if label != "Right":
-                        # Skip left hand detections entirely
+                    if mirrored_camera:
+                        label = "Left" if label == "Right" else "Right"
+                    if label != tracked_hand_label:
+                        # Skip detections that are not the desired hand
                         continue
 
                     # Draw landmarks only for the right hand
