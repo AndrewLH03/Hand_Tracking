@@ -3,6 +3,15 @@ import mediapipe as mp
 import numpy as np
 import time
 
+def draw_button(img, x, y, w, h, text, bg_color, text_color=(255, 255, 255)):
+    """Draw a labeled rectangle on the given image."""
+    cv2.rectangle(img, (x, y), (x + w, y + h), bg_color, -1)
+    text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+    text_x = x + (w - text_size[0]) // 2
+    text_y = y + (h + text_size[1]) // 2
+    cv2.putText(img, text, (text_x, text_y),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, text_color, 2)
+
 def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None):
     """Create and position all UI elements on the frame"""
     frame_h, frame_w = frame.shape[:2]
@@ -46,48 +55,25 @@ def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None)
     
     # Position buttons directly below the coordinate display
     status_y = 290  # Just below the wrist coordinates which end at y=260
-    
-    # Status position
-    cv2.rectangle(ui_frame, 
-                 (frame_w + button_margin, status_y), 
-                 (frame_w + button_margin + button_w, status_y + button_h), 
-                 (70, 70, 70), -1)
-    
-    # Status text (centered)
+
+    # Status indicator
     status_text = "PAUSED" if running_state['paused'] else "RUNNING"
     status_color = (0, 165, 255) if running_state['paused'] else (0, 255, 0)
-    text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
-    text_x = frame_w + button_margin + (button_w - text_size[0]) // 2
-    cv2.putText(ui_frame, status_text, 
-               (text_x, status_y + 20),
-               cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
-    
+    draw_button(ui_frame, frame_w + button_margin, status_y,
+                button_w, button_h, status_text, (70, 70, 70), status_color)
+
     # Pause button (below status)
     pause_button_x = frame_w + button_margin
     pause_button_y = status_y + button_h + 10
-    cv2.rectangle(ui_frame, 
-                 (pause_button_x, pause_button_y), 
-                 (pause_button_x + button_w, pause_button_y + button_h), 
-                 (255, 165, 0), -1)  # Orange
     pause_text = "RESUME" if running_state['paused'] else "PAUSE"
-    text_size = cv2.getTextSize(pause_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
-    text_x = pause_button_x + (button_w - text_size[0]) // 2
-    cv2.putText(ui_frame, pause_text, 
-               (text_x, pause_button_y + 27), 
-               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-    
+    draw_button(ui_frame, pause_button_x, pause_button_y,
+                button_w, button_h, pause_text, (255, 165, 0))
+
     # Stop button (below pause button)
     stop_button_x = frame_w + button_margin
     stop_button_y = pause_button_y + button_h + 10
-    cv2.rectangle(ui_frame, 
-                 (stop_button_x, stop_button_y), 
-                 (stop_button_x + button_w, stop_button_y + button_h), 
-                 (0, 0, 255), -1)  # Red
-    text_size = cv2.getTextSize("STOP", cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
-    text_x = stop_button_x + (button_w - text_size[0]) // 2
-    cv2.putText(ui_frame, "STOP", 
-               (text_x, stop_button_y + 27), 
-               cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    draw_button(ui_frame, stop_button_x, stop_button_y,
+                button_w, button_h, "STOP", (0, 0, 255))
     
     return ui_frame, {
         'panel_width': panel_width,
