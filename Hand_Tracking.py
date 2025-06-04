@@ -12,7 +12,7 @@ def draw_button(img, x, y, w, h, text, bg_color, text_color=(255, 255, 255)):
     cv2.putText(img, text, (text_x, text_y),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, text_color, 2)
 
-def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None):
+def create_ui_elements(frame, running_state, right_shoulder=None, right_wrist=None):
     """Create and position all UI elements on the frame"""
     frame_h, frame_w = frame.shape[:2]
     
@@ -32,15 +32,15 @@ def create_ui_elements(frame, running_state, right_elbow=None, right_wrist=None)
     ui_frame[:, frame_w:, :] = (40, 40, 40)
     
     # Coordinates panel in the top right
-    if right_elbow and right_wrist:
-        # Elbow coordinates
-        cv2.putText(ui_frame, "Elbow coordinates:", 
+    if right_shoulder and right_wrist:
+        # Shoulder coordinates
+        cv2.putText(ui_frame, "Shoulder coordinates:", 
                    (frame_w + 10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-        cv2.putText(ui_frame, f"X: {right_elbow[0]:.2f}", 
+        cv2.putText(ui_frame, f"X: {right_shoulder[0]:.2f}", 
                    (frame_w + 20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-        cv2.putText(ui_frame, f"Y: {right_elbow[1]:.2f}", 
+        cv2.putText(ui_frame, f"Y: {right_shoulder[1]:.2f}", 
                    (frame_w + 20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-        cv2.putText(ui_frame, f"Z: {right_elbow[2]:.2f}", 
+        cv2.putText(ui_frame, f"Z: {right_shoulder[2]:.2f}", 
                    (frame_w + 20, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
         
         # Wrist coordinates
@@ -243,10 +243,10 @@ def main():
             overlay = frame.copy()
             
             # Variables to store landmarks
-            right_elbow = None
+            right_shoulder = None
             right_wrist = None
             
-            # Extract elbow position from pose
+            # Extract shoulder position from pose
             if pose_results.pose_landmarks:
                 # Draw pose landmarks with custom style
                 mp_drawing.draw_landmarks(
@@ -257,11 +257,11 @@ def main():
                     connection_drawing_spec=mp_drawing.DrawingSpec(color=(255, 255, 255), thickness=2)
                 )
                 
-                # Get right elbow position
-                right_elbow = [
-                    pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW].x,
-                    pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW].y,
-                    pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW].z
+                # Get right shoulder position
+                right_shoulder = [
+                    pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER].x,
+                    pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER].y,
+                    pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER].z
                 ]
                 
                 # Fallback wrist position from pose (in case hand detection fails)
@@ -270,14 +270,14 @@ def main():
                     pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST].y,
                     pose_results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST].z
                 ]
-                
-                # Draw elbow point with label
-                elbow_pixel = (
-                    int(right_elbow[0] * frame.shape[1]), 
-                    int(right_elbow[1] * frame.shape[0])
+
+                # Draw shoulder point with label
+                shoulder_pixel = (
+                    int(right_shoulder[0] * frame.shape[1]), 
+                    int(right_shoulder[1] * frame.shape[0])
                 )
-                cv2.circle(overlay, elbow_pixel, 10, (0, 0, 255), -1)
-                cv2.putText(overlay, "ELBOW", (elbow_pixel[0]+10, elbow_pixel[1]), 
+                cv2.circle(overlay, shoulder_pixel, 10, (0, 0, 255), -1)
+                cv2.putText(overlay, "SHOULDER", (shoulder_pixel[0]+10, shoulder_pixel[1]), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             
             # Extract more precise wrist position from hand tracking
@@ -321,20 +321,20 @@ def main():
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
                     break
             
-            # If we have both elbow and wrist positions, display a vector connecting them
-            if right_elbow is not None and right_wrist is not None:
-                # Draw vector from elbow to wrist
-                elbow_px = (int(right_elbow[0] * frame.shape[1]), int(right_elbow[1] * frame.shape[0]))
+            # If we have both shoulder and wrist positions, display a vector connecting them
+            if right_shoulder is not None and right_wrist is not None:
+                # Draw vector from shoulder to wrist
+                shoulder_px = (int(right_shoulder[0] * frame.shape[1]), int(right_shoulder[1] * frame.shape[0]))
                 wrist_px = (int(right_wrist[0] * frame.shape[1]), int(right_wrist[1] * frame.shape[0]))
-                cv2.line(overlay, elbow_px, wrist_px, (255, 0, 255), 3)
-            
+                cv2.line(overlay, shoulder_px, wrist_px, (255, 0, 255), 3)
+
             # Blend the overlay with the original frame
             alpha = 0.7  # Transparency factor
             cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
         
         # Create UI elements with the current frame
-        ui_frame, ui_layout = create_ui_elements(frame, running_state, right_elbow, right_wrist)
-        
+        ui_frame, ui_layout = create_ui_elements(frame, running_state, right_shoulder, right_wrist)
+
         # Show the frame
         cv2.imshow(window_name, ui_frame)
         
