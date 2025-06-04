@@ -8,21 +8,26 @@ Real-time control of a DoBot CR3 robot using hand tracking via MediaPipe compute
 
 ## 🚀 Quick Start
 
-### Option 1: Automated Startup
+### Option 1: Automated Startup (with robot test)
 ```bash
-python startup.py --robot-ip 192.168.5.1
+python startup.py --robot-ip 192.168.1.6
 ```
 
-### Option 2: Manual Startup (with hardware)
+### Option 2: Automated Startup (skip robot test)
+```bash
+python startup.py --robot-ip 192.168.1.6 --skip-robot-test
+```
+
+### Option 3: Manual Startup (with hardware)
 ```bash
 # Terminal 1 - Robot Controller
-python CR3_Control.py --robot-ip 192.168.5.1
+python CR3_Control.py --robot-ip 192.168.1.6
 
 # Terminal 2 - Hand Tracking
 python Hand_Tracking.py --enable-robot
 ```
 
-### Option 3: Test Mode (no hardware required)
+### Option 4: Test Mode (no hardware required)
 ```bash
 # Terminal 1 - Test Robot Controller
 python Testing/test_suite.py --test-robot
@@ -70,8 +75,37 @@ The DoBot CR3 API is included in `TCP-IP-CR-Python-V4/dobot_api.py`
 
 ### Network Setup
 - Ensure robot and computer are on same network
-- Default robot IP: `192.168.5.1`
+- Default robot IP: `192.168.1.6`
 - Default communication port: `8888`
+
+## 🔧 Robot Movement Test
+
+The startup script includes an automatic robot movement test to verify connectivity and functionality before starting hand tracking.
+
+### What the Test Does
+1. **Connects** to the robot at the specified IP address
+2. **Enables** the robot for movement
+3. **Records** the current robot position
+4. **Moves** the robot to a safe packing position (X:250, Y:0, Z:300)
+5. **Returns** the robot to its original position
+6. **Verifies** the robot returned within 5mm tolerance
+
+### Test Options
+```bash
+# Run with robot test (default)
+python startup.py --robot-ip YOUR_ROBOT_IP
+
+# Skip the robot test
+python startup.py --robot-ip YOUR_ROBOT_IP --skip-robot-test
+
+# Simulation mode (no robot test)
+python startup.py --simulation
+```
+
+### Test Results
+- ✅ **Success**: Robot moves correctly and is ready for hand tracking
+- ❌ **Failure**: Shows specific error message and offers option to continue
+- ⚠️ **Warning**: Position differs slightly but still functional
 
 ## 📖 Usage Guide
 
@@ -93,7 +127,7 @@ Options:
 python CR3_Control.py --help
 
 Options:
-  --robot-ip IP           # Robot IP address (default: 192.168.5.1)
+  --robot-ip IP           # Robot IP address (default: 192.168.1.6)
   --server-port PORT      # TCP server port (default: 8888)
   --workspace-size SIZE   # Workspace size in mm (default: 400.0)
 ```
@@ -183,7 +217,7 @@ python Hand_Tracking.py --camera-index 1
 **Robot connection failed:**
 ```bash
 # Verify robot IP and network
-ping 192.168.5.1
+ping 192.168.1.6
 python CR3_Control.py --robot-ip YOUR_ROBOT_IP
 ```
 

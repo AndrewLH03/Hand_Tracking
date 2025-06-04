@@ -36,7 +36,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'TCP-IP-CR-Python-
 class TestRobotController:
     """Test robot controller that simulates robot operations without hardware"""
     
-    def __init__(self, robot_ip: str = "192.168.5.1"):
+    def __init__(self, robot_ip: str = "192.168.1.6"):
         self.robot_ip = robot_ip
         self.running = False
         self.current_position = [0, 0, 200, 0, 0, 0]  # x, y, z, rx, ry, rz

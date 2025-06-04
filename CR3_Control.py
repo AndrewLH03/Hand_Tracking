@@ -143,7 +143,7 @@ class HandTrackingServer:
 class CR3RobotController:
     """Main controller for the CR3 robot with hand tracking integration"""
     
-    def __init__(self, robot_ip: str = "192.168.5.1"):
+    def __init__(self, robot_ip: str = "192.168.1.6"):
         """
         Initialize the robot controller
         
@@ -349,7 +349,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="CR3 Robot Controller with Hand Tracking")
-    parser.add_argument("--robot-ip", default="192.168.5.1", 
+    parser.add_argument("--robot-ip", default="192.168.1.6", 
                        help="IP address of the CR3 robot")
     parser.add_argument("--server-port", type=int, default=8888,
                        help="Port for hand tracking server")
