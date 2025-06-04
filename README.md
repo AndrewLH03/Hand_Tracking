@@ -107,6 +107,39 @@ python startup.py --simulation
 - ❌ **Failure**: Shows specific error message and offers option to continue
 - ⚠️ **Warning**: Position differs slightly but still functional
 
+## 🔬 Pre-flight Robot Verification
+
+**Before running the main system**, use the comprehensive robot verification script to ensure your laptop can communicate with the robot and that it accepts movement commands without errors.
+
+### Quick Pre-flight Check
+```bash
+# Quick test (no movement, just connectivity and status)
+python robot_preflight_check.py --robot-ip 192.168.1.6 --quick
+```
+
+### Full Pre-flight Check
+```bash
+# Complete test with movement verification
+python robot_preflight_check.py --robot-ip 192.168.1.6
+
+# With custom timeout
+python robot_preflight_check.py --robot-ip 192.168.1.6 --timeout 15
+```
+
+### What the Pre-flight Check Does
+1. **🌐 Network Connectivity**: Tests if robot is reachable on the network
+2. **🔗 Robot API Connection**: Verifies dashboard and move client connections
+3. **🔍 Robot Status**: Checks for alarms and clears them if possible
+4. **📍 Position Reading**: Reads and validates current robot position
+5. **📦 Packing Movement**: Moves robot to safe packing position (250, 0, 300)
+6. **🏠 Return Movement**: Returns robot to original position
+7. **🛡️ Final Status**: Confirms no alarms or errors after testing
+
+### Pre-flight Results
+- ✅ **All tests pass**: Robot is ready for hand tracking operations
+- ❌ **Tests fail**: Address issues before running startup.py
+- 🔧 **Specific guidance**: Each test provides detailed error information
+
 ## 📖 Usage Guide
 
 ### Hand_Tracking.py Options

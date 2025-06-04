@@ -43,6 +43,7 @@ python test_suite.py --communication           # TCP communication test
 python test_suite.py --integration             # Full integration test
 python test_suite.py --demo                    # Interactive demonstration
 python test_suite.py --test-robot              # Start test robot controller
+python test_suite.py --startup-test            # Test startup robot movement function
 python test_suite.py --all                     # Run complete test suite
 ```
 
@@ -78,6 +79,11 @@ python test_suite.py --all                     # Run complete test suite
 - 🤖 Receives and processes hand tracking data
 - 🤖 Demonstrates coordinate transformation in action
 - 🤖 Perfect for testing without physical robot
+
+#### 7. Startup Test (`--startup-test`)
+- 🚀 Tests the robot's initial movement capabilities
+- 🚀 Validates startup sequence and basic functionality
+- 🚀 Ensures robot can perform basic tasks upon startup
 
 ### Test Robot Controller Usage
 

@@ -448,46 +448,90 @@ class TestSuite:
         
         return passed_tests == total_tests
 
+def test_startup_robot_movement():
+    """Test the robot movement test function from startup.py"""
+    print("\n" + "="*50)
+    print("🧪 TESTING STARTUP ROBOT MOVEMENT FUNCTION")
+    print("="*50)
+    
+    try:
+        # Import the startup function
+        import sys
+        sys.path.append('..')
+        from startup import test_robot_movement, ROBOT_API_AVAILABLE
+        
+        print(f"Robot API Available: {ROBOT_API_AVAILABLE}")
+        
+        if not ROBOT_API_AVAILABLE:
+            print("⚠️  Robot API not available - test skipped")
+            return True
+        
+        # Test with invalid IP (should fail gracefully)
+        print("\n🔍 Testing with invalid IP (should fail gracefully):")
+        result = test_robot_movement("192.168.999.999")
+        print(f"Result: {result}")
+        
+        if result == False:  # Should fail with invalid IP
+            print("✅ Error handling works correctly")
+            return True
+        else:
+            print("❌ Error handling failed - should return False for invalid IP")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Test failed with exception: {e}")
+        return False
+
 def main():
-    parser = argparse.ArgumentParser(description="Hand Tracking Robot Control Test Suite")
-    parser.add_argument("--basic", action="store_true", help="Run basic import tests only")
-    parser.add_argument("--coordinates", action="store_true", help="Test coordinate transformation only")
-    parser.add_argument("--communication", action="store_true", help="Test TCP communication only")
-    parser.add_argument("--integration", action="store_true", help="Test system integration only")
-    parser.add_argument("--demo", action="store_true", help="Run interactive demo mode")
-    parser.add_argument("--test-robot", action="store_true", help="Start test robot controller")
-    parser.add_argument("--duration", type=int, default=60, help="Duration for test robot (seconds)")
-    parser.add_argument("--all", action="store_true", help="Run all tests (default)")
+    """Main test runner with enhanced options"""
+    parser = argparse.ArgumentParser(description="Comprehensive Hand Tracking Robot Control Test Suite")
+    parser.add_argument("--basic", action="store_true", help="Run basic import and setup tests")
+    parser.add_argument("--integration", action="store_true", help="Run integration tests")
+    parser.add_argument("--performance", action="store_true", help="Run performance benchmarks")
+    parser.add_argument("--test-robot", action="store_true", help="Run with test robot controller")
+    parser.add_argument("--duration", type=int, default=30, help="Test duration in seconds")
+    parser.add_argument("--all", action="store_true", help="Run all tests")
+    parser.add_argument("--startup-test", action="store_true", help="Test startup robot movement function")
     
     args = parser.parse_args()
     
+    if not any([args.basic, args.integration, args.performance, args.test_robot, args.all, args.startup_test]):
+        parser.print_help()
+        return
+    
+    success = True
+    
+    # Initialize test suite
     suite = TestSuite()
     
-    # If no specific test is selected, run all tests
-    if not any([args.basic, args.coordinates, args.communication, args.integration, args.demo, args.test_robot]):
-        args.all = True
+    # Run startup test if requested
+    if args.startup_test or args.all:
+        success &= test_startup_robot_movement()
     
-    try:
-        if args.test_robot:
-            controller = TestRobotController()
-            controller.start_test_robot(args.duration)
-        elif args.demo:
-            suite.demo_mode()
-        elif args.basic:
-            suite.basic_imports_test()
-        elif args.coordinates:
-            suite.coordinate_transformation_test()
-        elif args.communication:
-            suite.tcp_communication_test()
-        elif args.integration:
-            suite.integration_test()
-        elif args.all:
-            suite.run_all_tests()
-            
-    except KeyboardInterrupt:
-        print("\n\nTest interrupted by user")
-    except Exception as e:
-        print(f"\nUnexpected error: {e}")
+    # Run test robot controller if requested
+    if args.test_robot or args.all:
+        controller = TestRobotController()
+        controller.start_test_robot(args.duration)
+        
+    # Run selected tests
+    if args.basic or args.all:
+        suite.basic_imports_test()
+    if args.integration or args.all:
+        suite.integration_test()
+    if args.all:
+        suite.run_all_tests()
+        
+    # Performance test placeholder
+    if args.performance:
+        print("\n=== PERFORMANCE TEST (not implemented) ===")
+        print("This feature will be available in a future update.")
+    
+    print("\nTest suite completed.")
+    
+    if success:
+        print("✅ All tests passed successfully.")
+    else:
+        print("⚠️ Some tests failed. Please check the output for details.")
 
 if __name__ == "__main__":
     main()

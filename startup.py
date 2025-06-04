@@ -16,7 +16,7 @@ from pathlib import Path
 # Add robot API import for test movement
 sys.path.append('TCP-IP-CR-Python-V4')
 try:
-    from dobot_api import DobotApiDashboard, DobotApiMove
+    from dobot_api import DobotApiDashboard, DobotApiFeedBack
     ROBOT_API_AVAILABLE = True
 except ImportError:
     ROBOT_API_AVAILABLE = False
@@ -98,17 +98,12 @@ def test_robot_movement(robot_ip):
     print(f"Connecting to robot at {robot_ip}...")
     
     dashboard = None
-    move_client = None
     
     try:
         # Connect to robot
         dashboard = DobotApiDashboard(robot_ip, 29999)
         dashboard.connect()
         print("✓ Dashboard connected")
-        
-        move_client = DobotApiMove(robot_ip, 30003)
-        move_client.connect()
-        print("✓ Move client connected")
         
         # Enable robot
         print("Enabling robot...")
@@ -122,9 +117,9 @@ def test_robot_movement(robot_ip):
         
         # Move to packing position (safe position above workspace)
         print("\\n📦 Moving to packing position...")
-        packing_position = f"MovL({{X:250, Y:0, Z:300, RX:{current_pos[3]}, RY:{current_pos[4]}, RZ:{current_pos[5]}}})"
         
-        result = move_client.send_data(packing_position)
+        # Send movement command using dashboard MovL method
+        result = dashboard.MovL(250, 0, 300, current_pos[3], current_pos[4], current_pos[5], coordinateMode=0)
         print(f"✓ Packing position command sent: {result}")
         
         # Wait for movement to complete
@@ -137,9 +132,10 @@ def test_robot_movement(robot_ip):
         
         # Return to original position
         print("\\n🏠 Returning to original position...")
-        return_position = f"MovL({{X:{current_pos[0]}, Y:{current_pos[1]}, Z:{current_pos[2]}, RX:{current_pos[3]}, RY:{current_pos[4]}, RZ:{current_pos[5]}}})"
         
-        result = move_client.send_data(return_position)
+        # Send return movement command using dashboard MovL method
+        result = dashboard.MovL(current_pos[0], current_pos[1], current_pos[2], 
+                              current_pos[3], current_pos[4], current_pos[5], coordinateMode=0)
         print(f"✓ Return command sent: {result}")
         
         # Wait for return movement
@@ -177,8 +173,6 @@ def test_robot_movement(robot_ip):
         try:
             if dashboard:
                 dashboard.disconnect()
-            if move_client:
-                move_client.disconnect()
         except:
             pass
 
