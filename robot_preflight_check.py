@@ -1,18 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-CR3 Robot Pre-flight Verification Script (Using robot_utils)
+CR3 Robot Pre-flight Verification Script (Simplified)
 
 This script performs basic testing of the CR3 robot connection and movement
-capabilities before running the main hand tracking system. It verifies:
-
-1. Network connectivity to robot
-2. Robot API communication
-3. Robot status and alarm checking
-4. Basic movement test (initial → packing → initial)
-
-Run this script before startup.py to ensure your laptop can communicate with
-the robot and that it can accept movement commands without errors.
+capabilities before running the main hand tracking system using the comprehensive
+perform_preflight_check method from robot_utils.
 
 Usage:
     python robot_preflight_check.py [--robot-ip 192.168.1.6] [--quick]
@@ -28,7 +21,7 @@ from robot_utils import RobotConnection
 
 
 def main():
-    """Main function - run preflight check using RobotConnection"""
+    """Main function - run preflight check using simplified approach"""
     parser = argparse.ArgumentParser(description="CR3 Robot Pre-flight Check")
     parser.add_argument("--robot-ip", default="192.168.1.6", 
                        help="Robot IP address (default: 192.168.1.6)")
@@ -37,52 +30,41 @@ def main():
     
     args = parser.parse_args()
     
+    print("🚀 ROBOT PRE-FLIGHT CHECK STARTING")
+    if args.quick:
+        print("(QUICK MODE - No Movement Test)")
+    print(f"Robot IP: {args.robot_ip}")
+    
     # Create robot connection
     robot = RobotConnection(args.robot_ip)
     
     try:
-        # For quick test, we skip the movement test
         if args.quick:
-            # Connect to robot
-            print("🚀 ROBOT PRE-FLIGHT CHECK STARTING (QUICK MODE)")
-            print(f"Robot IP: {args.robot_ip}")
-            print("="*60)
+            # Quick test - just connectivity and status
+            success = True
             
-            # Step 1: Test network connectivity
-            print("\n" + "="*60)
-            print("🌐 TEST 1: NETWORK CONNECTIVITY")
-            print("="*60)
-            success, message = robot.test_network_connectivity()
-            if not success:
-                print(f"❌ Network connectivity test failed: {message}")
-                return False
-            print(f"✅ Network connectivity test passed: {message}")
+            # Network test
+            net_success, net_msg = robot.test_network_connectivity()
+            print(f"🌐 Network: {'✅' if net_success else '❌'} {net_msg}")
+            success &= net_success
             
-            # Step 2: Connect to robot
-            print("\n" + "="*60)
-            print("🤖 TEST 2: ROBOT API CONNECTION")
-            print("="*60)
-            success, message = robot.connect()
-            if not success:
-                print(f"❌ Robot API connection test failed: {message}")
-                return False
-            print(f"✅ Robot API connection test passed: {message}")
+            if net_success:
+                # Connection test
+                conn_success, conn_msg = robot.connect()
+                print(f"🤖 Connection: {'✅' if conn_success else '❌'} {conn_msg}")
+                success &= conn_success
+                
+                if conn_success:
+                    # Status test
+                    robot.clear_errors()
+                    alarm_ok, _ = robot.check_robot_alarms()
+                    print(f"⚕️ Status: {'✅' if alarm_ok else '❌'} {'No alarms' if alarm_ok else 'Active alarms detected'}")
+                    success &= alarm_ok
             
-            # Step 3: Clear errors and check alarms
-            print("\n" + "="*60)
-            print("⚕️ TEST 3: ROBOT STATUS")
-            print("="*60)
-            robot.clear_errors()
-            alarm_ok, errors = robot.check_robot_alarms()
-            if not alarm_ok:
-                print(f"❌ Robot has active alarms: {errors}")
-                return False
-            print("✅ Robot status check passed: No active alarms")
-            
-            print("\n🎉 QUICK PRE-FLIGHT CHECK PASSED - Robot ready for operation!")
-            return True
+            print(f"\n{'🎉 QUICK CHECK PASSED' if success else '❌ QUICK CHECK FAILED'}")
+            return success
         else:
-            # Full test including movement
+            # Full preflight check with movement
             success, results, messages = robot.perform_preflight_check()
             return success
             
