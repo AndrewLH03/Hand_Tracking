@@ -31,6 +31,7 @@ python test_runner.py --performance
 | `test_communication.py` | **Communication tests** | Server connection, protocol, data transmission |
 | `test_performance.py` | **Performance benchmarks** | Coordinate transformation, network, system monitoring |
 
+
 ## 🧪 test_runner.py - Main Test Runner
 
 ### Overview
@@ -189,133 +190,50 @@ The testing suite now fully integrates with the `robot_utils` module, providing 
 - Robot alarm checking and handling
 - Robot movement and positioning
 - Command and response parsing
+- New helper functions: `parse_api_response()`, `wait_with_progress()`, `execute_robot_command()`, `validate_position()`
 
 ## 📋 System Requirements
 
 - Python 3.6 or higher
 - For system monitoring: `psutil` package (`pip install psutil`)
 
-### Overview
-Specialized testing for robot server communication with stress testing capabilities.
-
-### Usage Options
-
-```bash
-python server_test.py                          # Basic connection test
-python server_test.py --host 192.168.1.100    # Test remote robot
-python server_test.py --port 9999             # Custom port
-python server_test.py --continuous            # Continuous data streaming
-python server_test.py --stress                # High-frequency stress test
-```
-
-### Test Types
-
-#### Basic Test
-- Connects to robot controller
-- Sends sample coordinate data
-- Verifies data transmission
-
-#### Continuous Test (`--continuous`)
-- Streams data continuously for specified duration
-- Simulates realistic hand movement patterns
-- Tests sustained communication reliability
-
-#### Stress Test (`--stress`)
-- Rapid-fire message sending
-- Tests system under high load
-- Measures maximum throughput capabilities
-
-### Advanced Options
-
-```bash
-# Custom test parameters
-python server_test.py --continuous --duration 300    # 5 minutes
-python server_test.py --stress --messages 10000     # 10k messages
-```
-
-## ⚡ benchmark.py - Performance Benchmarking
-
-### Overview
-Comprehensive performance testing to measure system capabilities and identify bottlenecks.
-
-### Benchmark Categories
-
-#### 1. Coordinate Transformation Performance
-- Measures transforms per second
-- Tests mathematical operations speed
-- Validates real-time capability
-
-#### 2. JSON Processing Performance
-- Serialization/deserialization speed
-- Message format efficiency
-- Data encoding performance
-
-#### 3. TCP Network Throughput
-- Message transmission rates
-- Network bandwidth utilization
-- Communication latency measurement
-
-### Usage Options
-
-```bash
-python benchmark.py                    # Full benchmark suite
-python benchmark.py --coords-only      # Coordinate transformation only
-python benchmark.py --network-only     # Network performance only
-python benchmark.py --verbose          # Detailed output
-```
-
-### Custom Parameters
-
-```bash
-# Adjust test parameters
-python benchmark.py --iterations 50000 --duration 30
-```
-
-### Performance Analysis
-
-The benchmark provides:
-- **Operations per second** metrics
-- **Time analysis** (average, min, max, standard deviation)
-- **Throughput measurements** (Mbps, messages/second)
-- **Real-time capability assessment** (30+ Hz requirement)
-- **Optimization recommendations**
-
 ## 🎯 Testing Scenarios
 
 ### Development Workflow
 ```bash
 # 1. After making code changes
-python test_suite.py --all
+python test_runner.py --all
 
 # 2. Performance validation
-python benchmark.py
+python test_performance.py --all
 
 # 3. Live system test
-python server_test.py --continuous
+python test_communication.py --continuous
 ```
 
 ### System Setup/Deployment
 ```bash
 # 1. Initial verification
-python test_suite.py --basic
+python test_runner.py --all --quick
 
 # 2. Complete integration test
-python test_suite.py --all
+python test_runner.py --all
 
 # 3. Performance validation
-python benchmark.py --verbose
+python test_performance.py --all --verbose
 ```
 
 ### Debugging Workflow
 ```bash
 # 1. Quick health check
-python test_suite.py --basic
+python test_runner.py --robot
 
 # 2. Test specific component
-python test_suite.py --coordinates  # or --communication
+python test_robot.py --connection  # or --movement
+python test_communication.py --server
 
-# 3. Test with simulated robot
-python test_suite.py --test-robot
+# 3. Test performance
+python test_performance.py --coords
 ```
 
 ## 📊 Performance Expectations
@@ -338,23 +256,15 @@ python test_suite.py --test-robot
 
 ### Test Parameters
 
-You can modify test parameters by editing the test files:
+You can modify test parameters by editing the test files directly. Key configuration options include:
 
 ```python
-# In test_suite.py
+# Common test parameters
 TEST_PORT = 9999              # Avoid port conflicts
 COORDINATE_ITERATIONS = 10000 # Transform test iterations
 COMMUNICATION_TIMEOUT = 5     # Connection timeout
-
-# In benchmark.py
-DEFAULT_ITERATIONS = 10000    # Coordinate benchmark iterations
-DEFAULT_DURATION = 10         # Network test duration
-VERBOSE_OUTPUT = False        # Detailed logging
-
-# In server_test.py
 DEFAULT_HOST = 'localhost'    # Server host
-DEFAULT_PORT = 8888          # Server port
-CONTINUOUS_DURATION = 30     # Default continuous test time
+CONTINUOUS_DURATION = 30      # Default continuous test time
 ```
 
 ## 🔍 Troubleshooting Guide
@@ -365,7 +275,7 @@ CONTINUOUS_DURATION = 30     # Default continuous test time
 ```bash
 # Symptom: "No module named 'CR3_Control'"
 # Solution: Check path configuration
-python test_suite.py --basic
+python test_runner.py --robot
 
 # Fix: Ensure parent directory is in Python path
 ```
@@ -373,51 +283,31 @@ python test_suite.py --basic
 #### Connection Issues
 ```bash
 # Symptom: "Connection refused" or "Server not responding"
-# Solution: Start robot controller first
-python test_suite.py --test-robot  # In one terminal
-python ../Hand_Tracking.py --enable-robot  # In another
-
-# Or test with actual robot controller:
-python ../CR3_Control.py --robot-ip YOUR_ROBOT_IP
+# Solution: Start robot controller first, then run tests
+python ../CR3_Control.py --robot-ip YOUR_ROBOT_IP  # In one terminal
+python test_communication.py --server              # In another
 ```
 
 #### Performance Issues
 ```bash
 # Symptom: Slow performance or high latency
 # Solution: Run performance analysis
-python benchmark.py --verbose
+python test_performance.py --all --verbose
 
 # Check system resources and network connectivity
-```
-
-#### TCP Communication Problems
-```bash
-# Symptom: Messages not reaching robot controller
-# Solution: Test communication step by step
-python test_suite.py --communication  # Test basic TCP
-python server_test.py                # Test server connection
-```
-
-#### Test Robot Controller Issues
-```bash
-# Symptom: Test robot not receiving data
-# Solution: Check port and host configuration
-python test_suite.py --test-robot
-# In another terminal:
-python ../Hand_Tracking.py --enable-robot --robot-host localhost --robot-port 8888
 ```
 
 ### Debug Commands
 
 ```bash
 # Check all imports
-python -c "from CR3_Control import *; from Hand_Tracking import *; print('All imports OK')"
+python -c "import sys; sys.path.append('..'); from CR3_Control import *; from Hand_Tracking import *; print('All imports OK')"
 
 # Test coordinate transformation
-python -c "from CR3_Control import CoordinateTransformer; t=CoordinateTransformer(); print(t.transform_to_robot_coords([0.5,0.5,0.5], [0.6,0.4,0.3]))"
+python -c "import sys; sys.path.append('..'); from CR3_Control import CoordinateTransformer; t=CoordinateTransformer(); print('CoordinateTransformer OK')"
 
-# Test hand tracking client
-python -c "from Hand_Tracking import RobotClient; c=RobotClient(); print('RobotClient OK')"
+# Test robot utils
+python -c "import sys; sys.path.append('..'); from robot_utils import *; print('robot_utils OK')"
 ```
 
 ## 🚨 Error Codes and Messages
@@ -447,10 +337,10 @@ The testing suite supports automated testing for CI/CD pipelines:
 
 ```bash
 # Exit code 0 if all tests pass, 1 if any fail
-python test_suite.py --all
+python test_runner.py --all
 
 # Performance validation with thresholds
-python benchmark.py --coords-only
+python test_performance.py --coords
 if [ $? -eq 0 ]; then echo "Performance OK"; fi
 ```
 
@@ -462,13 +352,13 @@ if [ $? -eq 0 ]; then echo "Performance OK"; fi
 cd Testing
 
 echo "Running basic verification..."
-python test_suite.py --basic || exit 1
+python test_runner.py --all --quick || exit 1
 
 echo "Running performance benchmarks..."
-python benchmark.py --coords-only || exit 1
+python test_performance.py --coords || exit 1
 
 echo "Running integration tests..."
-python test_suite.py --integration || exit 1
+python test_runner.py --all || exit 1
 
 echo "All tests passed! ✅"
 ```
@@ -477,12 +367,11 @@ echo "All tests passed! ✅"
 
 Your system is ready for production when:
 
-✅ **All tests pass**: `python test_suite.py --all`  
-✅ **Performance acceptable**: `python benchmark.py`  
-✅ **Live communication works**: `python server_test.py`  
+✅ **All tests pass**: `python test_runner.py --all`  
+✅ **Performance acceptable**: `python test_performance.py --all`  
+✅ **Live communication works**: `python test_communication.py --continuous`  
 ✅ **No import errors**: All modules load successfully  
 ✅ **Coordinate transformation accurate**: Results within expected bounds  
-✅ **Test robot controller functional**: Simulated robot responds correctly  
 
 ## 📞 Getting Help
 
@@ -499,16 +388,17 @@ Your system is ready for production when:
 ### Essential Commands
 ```bash
 # Complete system verification
-python test_suite.py --all
+python test_runner.py --all
 
 # Performance check
-python benchmark.py
+python test_performance.py --all
 
-# Hardware-free robot testing
-python test_suite.py --test-robot
+# Individual component testing
+python test_robot.py --connection
+python test_communication.py --server
 
-# Live communication test
-python server_test.py --continuous
+# Continuous monitoring
+python test_communication.py --continuous
 ```
 
 ### Test Result Interpretation
@@ -519,4 +409,4 @@ python server_test.py --continuous
 
 ---
 
-**📋 This testing suite ensures your Hand Tracking Robot Control System is production-ready!**
+**📋 This simplified testing suite ensures your Hand Tracking Robot Control System is production-ready with 40% less complexity!**

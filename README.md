@@ -30,7 +30,7 @@ python Hand_Tracking.py --enable-robot
 ### Option 4: Test Mode (no hardware required)
 ```bash
 # Terminal 1 - Test Robot Controller
-python Testing/test_suite.py --test-robot
+python Testing/test_runner.py --robot
 
 # Terminal 2 - Hand Tracking
 python Hand_Tracking.py --enable-robot
@@ -183,30 +183,32 @@ Options:
 
 ### Quick System Check
 ```bash
-# Basic verification
-python Testing/test_suite.py --basic
+# Basic verification - test robot connectivity and utilities
+python Testing/test_robot.py --connection
 
-# Complete system test
-python Testing/test_suite.py --all
+# Complete system test - all robot, communication, and performance tests
+python Testing/test_runner.py --all
 
-# Performance benchmarking
-python Testing/benchmark.py
+# Individual component testing
+python Testing/test_robot.py --all           # Robot-specific tests
+python Testing/test_communication.py --all  # TCP/IP communication tests  
+python Testing/test_performance.py --all    # Performance benchmarking
 
-# Server communication test
-python Testing/server_test.py
+# Quick connectivity check
+python Testing/test_robot.py --utils
 ```
 
 ### Available Testing Modes
 
 | Test Type | Command | Purpose |
 |-----------|---------|---------|
-| Basic Imports | `--basic` | Verify all modules load |
-| Coordinates | `--coordinates` | Test coordinate transformation |
-| Communication | `--communication` | Test TCP networking |
-| Integration | `--integration` | End-to-end system test |
-| Demo | `--demo` | Interactive demonstration |
-| Test Robot | `--test-robot` | Simulated robot controller |
-| All Tests | `--all` | Complete test suite |
+| Robot Connection | `python Testing/test_robot.py --connection` | Test robot connectivity and API |
+| Robot Movement | `python Testing/test_robot.py --movement` | Test robot movement capabilities |
+| Robot Utils | `python Testing/test_robot.py --utils` | Test robot utilities module |
+| All Robot Tests | `python Testing/test_robot.py --all` | Complete robot test suite |
+| Communication | `python Testing/test_communication.py --all` | Test TCP/IP networking |
+| Performance | `python Testing/test_performance.py --all` | Performance benchmarking |
+| All Tests | `python Testing/test_runner.py --all` | Run all available tests |
 
 For detailed testing documentation, see `Testing/README.md`
 
@@ -261,15 +263,15 @@ python CR3_Control.py --robot-ip YOUR_ROBOT_IP
 
 **TCP connection issues:**
 ```bash
-# Test with simulation mode first
-python Testing/test_suite.py --test-robot
-python Hand_Tracking.py --enable-robot
+# Test with robot communication first
+python Testing/test_communication.py --all
+python Testing/test_robot.py --connection
 ```
 
 **Import errors:**
 ```bash
 # Verify all dependencies installed
-python Testing/test_suite.py --basic
+python Testing/test_runner.py --all --quick
 ```
 
 ### Debug Commands
@@ -280,8 +282,11 @@ python -c "from CR3_Control import CoordinateTransformer; print('OK')"
 # Test hand tracking modules  
 python -c "from Hand_Tracking import RobotClient; print('OK')"
 
+# Test robot utilities
+python -c "from robot_utils import RobotConnection; print('OK')"
+
 # Full system verification
-python Testing/test_suite.py --all
+python Testing/test_runner.py --all
 ```
 
 ## 📁 Project Structure
@@ -295,9 +300,10 @@ Hand_Tracking/
 ├── TCP-IP-CR-Python-V4/       # DoBot API directory
 │   └── dobot_api.py           # Robot communication API
 └── Testing/                   # Comprehensive testing suite
-    ├── test_suite.py          # Main testing framework + test robot
-    ├── server_test.py         # Server communication testing
-    ├── benchmark.py           # Performance benchmarking
+    ├── test_runner.py         # Main test runner interface
+    ├── test_robot.py          # Robot-specific tests
+    ├── test_communication.py  # Communication tests
+    ├── test_performance.py    # Performance benchmarking
     └── README.md              # Testing documentation
 ```
 
@@ -336,8 +342,8 @@ The TCP communication protocol allows integration with other robotics frameworks
 
 ### Getting Help
 1. **Check error messages** - they provide specific guidance
-2. **Run test suite** - `python Testing/test_suite.py --all`
-3. **Use demo mode** - `python Testing/test_suite.py --demo`
+2. **Run test suite** - `python Testing/test_runner.py --all`
+3. **Test individual components** - `python Testing/test_robot.py --all`
 4. **Verify hardware connections** - network, camera, robot power
 
 ### Contributing
