@@ -1,4 +1,4 @@
-# Testing Suite Documentation
+# Robot Control Testing Suite
 
 Comprehensive testing framework for the Hand Tracking Robot Control System. This testing suite provides complete verification, performance benchmarking, and debugging capabilities.
 
@@ -9,13 +9,15 @@ Comprehensive testing framework for the Hand Tracking Robot Control System. This
 cd Testing
 
 # Complete system verification
-python test_suite.py --all
+python test_runner.py --all
 
-# Performance benchmarking
-python benchmark.py
+# Quick tests only
+python test_runner.py --all --quick
 
-# Server communication test
-python server_test.py
+# Individual test categories
+python test_runner.py --robot
+python test_runner.py --communication
+python test_runner.py --performance
 ```
 
 ## 📋 Test Suite Overview
@@ -24,81 +26,174 @@ python server_test.py
 
 | File | Purpose | Key Features |
 |------|---------|--------------|
-| `test_suite.py` | **Main testing framework** | All-in-one testing + test robot controller |
-| `server_test.py` | **Server communication testing** | Stress testing, continuous streaming |
-| `benchmark.py` | **Performance benchmarking** | Speed metrics, optimization analysis |
+| `test_runner.py` | **Main test runner** | Unified interface for all tests |
+| `test_robot.py` | **Robot-related tests** | Connection, movement, robot utilities |
+| `test_communication.py` | **Communication tests** | Server connection, protocol, data transmission |
+| `test_performance.py` | **Performance benchmarks** | Coordinate transformation, network, system monitoring |
 
-## 🧪 test_suite.py - Main Testing Framework
+## 🧪 test_runner.py - Main Test Runner
 
 ### Overview
-Unified testing framework that combines all basic testing capabilities plus an integrated test robot controller.
+Unified test runner that provides a centralized interface to run all system tests.
 
 ### Available Test Modes
 
 ```bash
-python test_suite.py --help                    # Show all options
-python test_suite.py --basic                   # Import verification only
-python test_suite.py --coordinates             # Coordinate transformation test
-python test_suite.py --communication           # TCP communication test
-python test_suite.py --integration             # Full integration test
-python test_suite.py --demo                    # Interactive demonstration
-python test_suite.py --test-robot              # Start test robot controller
-python test_suite.py --startup-test            # Test startup robot movement function
-python test_suite.py --all                     # Run complete test suite
+# Show all options
+python test_runner.py --help
+
+# Run all tests
+python test_runner.py --all
+
+# Run only robot tests
+python test_runner.py --robot
+
+# Run only communication tests
+python test_runner.py --communication
+
+# Run only performance tests
+python test_runner.py --performance
+
+# Run quick tests (subset of full tests)
+python test_runner.py --all --quick
+```
+
+## 🤖 test_robot.py - Robot Tests
+
+### Overview
+Comprehensive testing for robot-related functionality.
+
+### Available Test Modes
+
+```bash
+# Show all options
+python test_robot.py --help
+
+# Test robot connection
+python test_robot.py --connection
+
+# Test robot movement
+python test_robot.py --movement
+
+# Test robot_utils module
+python test_robot.py --utils
+
+# Run all robot tests
+python test_robot.py --all
 ```
 
 ### What Each Test Does
 
-#### 1. Basic Imports (`--basic`)
-- ✅ Verifies all required modules can be imported
-- ✅ Tests CR3_Control, Hand_Tracking, and test components
-- ✅ Checks MediaPipe and other dependencies
+#### 1. Connection Test (`--connection`)
+- ✅ Tests network connectivity to the robot
+- ✅ Validates robot API availability
+- ✅ Tests error handling for invalid connections
 
-#### 2. Coordinate Transformation (`--coordinates`)
-- ✅ Tests MediaPipe → Robot coordinate conversion
-- ✅ Validates workspace bounds and safety limits
-- ✅ Verifies coordinate scaling and transformation accuracy
+#### 2. Movement Test (`--movement`)
+- ✅ Tests robot connection and enabling
+- ✅ Validates robot status and mode
+- ✅ Tests actual robot movement (when using --safe-movement)
 
-#### 3. TCP Communication (`--communication`)
-- ✅ Tests client-server communication
-- ✅ Validates JSON message format
-- ✅ Checks data transmission integrity
+#### 3. Robot Utilities Test (`--utils`)
+- ✅ Tests the robot_utils module functionality
+- ✅ Validates response parsing and error handling
+- ✅ Tests RobotConnection class functionality
 
-#### 4. Integration Test (`--integration`)
-- ✅ End-to-end system verification
-- ✅ Tests complete data flow pipeline
-- ✅ Validates system component interactions
+## 🌐 test_communication.py - Communication Tests
 
-#### 5. Demo Mode (`--demo`)
-- 🎯 Interactive demonstration of system capabilities
-- 🎯 Shows coordinate transformation examples
-- 🎯 Provides system startup instructions
+### Overview
+Testing for network communication and data transmission between system components.
 
-#### 6. Test Robot Controller (`--test-robot`)
-- 🤖 **Simulated robot controller** (no hardware required)
-- 🤖 Receives and processes hand tracking data
-- 🤖 Demonstrates coordinate transformation in action
-- 🤖 Perfect for testing without physical robot
-
-#### 7. Startup Test (`--startup-test`)
-- 🚀 Tests the robot's initial movement capabilities
-- 🚀 Validates startup sequence and basic functionality
-- 🚀 Ensures robot can perform basic tasks upon startup
-
-### Test Robot Controller Usage
+### Available Test Modes
 
 ```bash
-# Start test robot controller (default 60 seconds)
-python test_suite.py --test-robot
+# Show all options
+python test_communication.py --help
 
-# Custom duration
-python test_suite.py --test-robot --duration 120
+# Test server connection
+python test_communication.py --server
 
-# Then in another terminal:
-python ../Hand_Tracking.py --enable-robot
+# Test communication protocol
+python test_communication.py --protocol
+
+# Run continuous data transmission test
+python test_communication.py --continuous
+
+# Run all communication tests
+python test_communication.py --all
 ```
 
-## 🌐 server_test.py - Server Communication Testing
+### What Each Test Does
+
+#### 1. Server Connection Test (`--server`)
+- ✅ Tests connection to the robot control server
+- ✅ Validates server accessibility
+- ✅ Tests error handling for failed connections
+
+#### 2. Protocol Test (`--protocol`)
+- ✅ Tests JSON message format
+- ✅ Validates encoding/decoding of coordinate data
+- ✅ Tests message transmission to server
+
+#### 3. Continuous Test (`--continuous`)
+- ✅ Runs a continuous data transmission test
+- ✅ Measures message throughput and reliability
+- ✅ Validates system under sustained load
+
+## 📊 test_performance.py - Performance Tests
+
+### Overview
+Benchmarking and performance testing for system optimization.
+
+### Available Test Modes
+
+```bash
+# Show all options
+python test_performance.py --help
+
+# Benchmark coordinate transformation
+python test_performance.py --coords
+
+# Benchmark network performance
+python test_performance.py --network
+
+# Monitor system performance
+python test_performance.py --system
+
+# Run all performance tests
+python test_performance.py --all
+```
+
+### What Each Test Does
+
+#### 1. Coordinate Transformation Benchmark (`--coords`)
+- 📈 Measures coordinate transformation performance
+- 📈 Calculates average, median, min, max times
+- 📈 Evaluates throughput capacity
+
+#### 2. Network Performance Benchmark (`--network`)
+- 📡 Tests network communication throughput
+- 📡 Measures message delivery ratio
+- 📡 Evaluates system under high message volume
+
+#### 3. System Performance Monitoring (`--system`)
+- 💻 Monitors CPU and memory usage
+- 💻 Tracks resource utilization over time
+- 💻 Identifies potential bottlenecks
+
+## 🔄 Integration with robot_utils
+
+The testing suite now fully integrates with the `robot_utils` module, providing comprehensive testing of:
+
+- Robot connection and network connectivity
+- Robot alarm checking and handling
+- Robot movement and positioning
+- Command and response parsing
+
+## 📋 System Requirements
+
+- Python 3.6 or higher
+- For system monitoring: `psutil` package (`pip install psutil`)
 
 ### Overview
 Specialized testing for robot server communication with stress testing capabilities.

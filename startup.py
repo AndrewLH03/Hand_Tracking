@@ -13,13 +13,8 @@ import time
 import os
 from pathlib import Path
 
-# Add robot API import for test movement
-sys.path.append('TCP-IP-CR-Python-V4')
-try:
-    from dobot_api import DobotApiDashboard, DobotApiFeedBack
-    ROBOT_API_AVAILABLE = True
-except ImportError:
-    ROBOT_API_AVAILABLE = False
+# Import robot utilities
+from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
 
 def check_dependencies():
     """Check if all required dependencies are available"""
@@ -97,65 +92,43 @@ def test_robot_movement(robot_ip):
     print(f"\\n🔧 Testing robot movement...")
     print(f"Connecting to robot at {robot_ip}...")
     
-    dashboard = None
+    # Create a RobotConnection instance
+    robot = RobotConnection(robot_ip)
     
     try:
-        # Connect to robot
-        dashboard = DobotApiDashboard(robot_ip, 29999)
-        dashboard.connect()
-        print("✓ Dashboard connected")
+        # Step 1: Test network connectivity
+        success, message = robot.test_network_connectivity()
+        if not success:
+            print(f"❌ Network connectivity test failed: {message}")
+            response = input("\\nContinue anyway? (y/N): ")
+            return response.lower().startswith('y')
+        print(f"✓ Network connection: {message}")
         
-        # Enable robot
-        print("Enabling robot...")
-        enable_result = dashboard.EnableRobot()
-        print(f"✓ Robot enabled: {enable_result}")
-        time.sleep(1)
+        # Step 2: Connect to robot
+        success, message = robot.connect()
+        if not success:
+            print(f"❌ Robot connection failed: {message}")
+            response = input("\\nContinue anyway? (y/N): ")
+            return response.lower().startswith('y')
+        print(f"✓ Robot connection: {message}")
         
-        # Get current position
-        current_pos = dashboard.GetPose()
-        print(f"✓ Current position: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
+        # Step 3: Enable robot
+        success, message = robot.enable_robot()
+        if not success:
+            print(f"❌ Robot enablement failed: {message}")
+            response = input("\\nContinue anyway? (y/N): ")
+            return response.lower().startswith('y')
+        print(f"✓ Robot enabled: {message}")
         
-        # Move to packing position (safe position above workspace)
-        print("\\n📦 Moving to packing position...")
+        # Step 4: Perform movement test
+        success, message = robot.test_movement(use_packing_position=True)
+        if not success:
+            print(f"❌ Movement test failed: {message}")
+            response = input("\\nContinue anyway? (y/N): ")
+            return response.lower().startswith('y')
         
-        # Send movement command using dashboard MovL method
-        result = dashboard.MovL(250, 0, 300, current_pos[3], current_pos[4], current_pos[5], coordinateMode=0)
-        print(f"✓ Packing position command sent: {result}")
-        
-        # Wait for movement to complete
-        print("Waiting for movement to complete...")
-        time.sleep(3)
-        
-        # Check new position
-        packing_pos = dashboard.GetPose()
-        print(f"✓ Packing position: X={packing_pos[0]:.1f}, Y={packing_pos[1]:.1f}, Z={packing_pos[2]:.1f}")
-        
-        # Return to original position
-        print("\\n🏠 Returning to original position...")
-        
-        # Send return movement command using dashboard MovL method
-        result = dashboard.MovL(current_pos[0], current_pos[1], current_pos[2], 
-                              current_pos[3], current_pos[4], current_pos[5], coordinateMode=0)
-        print(f"✓ Return command sent: {result}")
-        
-        # Wait for return movement
-        time.sleep(3)
-        
-        # Verify return position
-        final_pos = dashboard.GetPose()
-        print(f"✓ Final position: X={final_pos[0]:.1f}, Y={final_pos[1]:.1f}, Z={final_pos[2]:.1f}")
-        
-        # Check if we're close to original position (within 5mm tolerance)
-        distance = ((final_pos[0] - current_pos[0])**2 + 
-                   (final_pos[1] - current_pos[1])**2 + 
-                   (final_pos[2] - current_pos[2])**2)**0.5
-        
-        if distance < 5.0:
-            print(f"✅ Robot movement test successful! (Distance: {distance:.1f}mm)")
-            return True
-        else:
-            print(f"⚠️  Robot position differs by {distance:.1f}mm from original")
-            return True  # Still allow continuation
+        print(f"✅ Robot movement test successful: {message}")
+        return True
             
     except Exception as e:
         print(f"❌ Robot movement test failed: {e}")
@@ -170,11 +143,7 @@ def test_robot_movement(robot_ip):
         
     finally:
         # Clean up connections
-        try:
-            if dashboard:
-                dashboard.disconnect()
-        except:
-            pass
+        robot.disconnect()
 
 def start_hand_tracking(robot_host, robot_port, hand, mirror):
     """Start the hand tracking"""

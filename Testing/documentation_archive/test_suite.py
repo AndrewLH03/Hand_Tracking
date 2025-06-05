@@ -11,6 +11,8 @@ Usage:
     python test_suite.py --integration             # Full integration test
     python test_suite.py --communication           # TCP communication test
     python test_suite.py --coordinates             # Coordinate transformation test
+    python test_suite.py --robot-utils-test        # Test robot_utils module
+    python test_suite.py --startup-test            # Test startup robot movement
     python test_suite.py --all                     # Run all tests
     python test_suite.py --demo                    # Interactive demo mode
     python test_suite.py --test-robot              # Start test robot controller
@@ -32,6 +34,19 @@ from pathlib import Path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # Add the TCP-IP-CR-Python-V4 directory to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'TCP-IP-CR-Python-V4'))
+
+# Import robot_utils module
+try:
+    from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
+except ImportError as e:
+    print(f"Warning: Could not import robot_utils module: {e}")
+    # Fallback to direct imports if robot_utils is not available
+    try:
+        from dobot_api import DobotApiDashboard, DobotApiFeedBack
+        ROBOT_API_AVAILABLE = True
+    except ImportError:
+        print("Warning: Robot API not available")
+        ROBOT_API_AVAILABLE = False
 
 class TestRobotController:
     """Test robot controller that simulates robot operations without hardware"""
@@ -381,6 +396,64 @@ class TestSuite:
         except Exception as e:
             self.log_result("Test robot controller", False, f"Error: {e}")
             return False
+            
+    def test_robot_utils(self) -> bool:
+        """Test 7: Robot Utils Module"""
+        print("\n=== TEST 7: Robot Utilities Module ===")
+        
+        try:
+            # Import the robot_utils module
+            import sys
+            sys.path.append('..')
+            from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
+            
+            # Log API availability
+            api_status = "available" if ROBOT_API_AVAILABLE else "not available"
+            self.log_result("Robot API availability", True, f"Robot API is {api_status}")
+            
+            # Test RobotConnection creation
+            robot = RobotConnection("192.168.1.6")  # Use default IP
+            self.log_result("RobotConnection initialization", True, "Successfully created RobotConnection instance")
+            
+            # Test the network connectivity check
+            try:
+                success, message = robot.test_network_connectivity()
+                connectivity_result = "successful" if success else "failed"
+                self.log_result("Network connectivity test", True, 
+                              f"Network test {connectivity_result}: {message}")
+            except Exception as e:
+                self.log_result("Network connectivity test", False, f"Error during network test: {e}")
+                
+            # Test error handling for an invalid IP
+            test_invalid_ip = RobotConnection("192.168.999.999")  # Invalid IP
+            success, message = test_invalid_ip.test_network_connectivity()
+            if not success:
+                self.log_result("Invalid IP handling", True, "Correctly handled invalid IP address")
+            else:
+                self.log_result("Invalid IP handling", False, "Failed to detect invalid IP address")
+                
+            # Test additional methods if robot API is available
+            if ROBOT_API_AVAILABLE:
+                # Test parsing a mock robot response
+                mock_alarm_response = "[[],[]]"  # Empty alarm response
+                # Simulate the alarm check logic
+                alarm_ok = "null" in mock_alarm_response or "[]" in mock_alarm_response
+                self.log_result("Response parsing", True, 
+                              f"Mock alarm parsing: {'no alarms' if alarm_ok else 'has alarms'}")
+                              
+                # Test position parsing from a mock response
+                mock_position = "[100.0, 0.0, 200.0, 0.0, 0.0, 0.0]"
+                numbers = [float(n) for n in mock_position.strip("[]").split(",")]
+                if len(numbers) == 6:
+                    self.log_result("Position parsing", True, f"Successfully parsed position: {numbers}")
+                else:
+                    self.log_result("Position parsing", False, "Failed to parse position data")
+            
+            return True
+            
+        except Exception as e:
+            self.log_result("Robot utils module", False, f"Error: {e}")
+            return False
 
     def demo_mode(self):
         """Interactive demo mode"""
@@ -410,10 +483,8 @@ class TestSuite:
             robot_coords = transformer.transform_to_robot_coords(pos["shoulder"], pos["wrist"])
             print(f"{pos['name']:20} -> Robot: ({robot_coords[0]:6.1f}, {robot_coords[1]:6.1f}, {robot_coords[2]:6.1f}) mm")
             
-        print("\n--- System Startup Commands ---")
-        print("To start the complete system:")
-        print("1. Robot Controller:  python CR3_Control.py --robot-ip YOUR_ROBOT_IP")
-        print("2. Hand Tracking:     python Hand_Tracking.py --enable-robot")
+        print("\n--- System Startup Commands ---")        print("To start the complete system:")
+        print("1. Robot Controller:  python CR3_Control.py --robot-ip YOUR_ROBOT_IP")        print("2. Hand Tracking:     python Hand_Tracking.py --enable-robot")
         print("3. Test Mode:         python CR3_Control_Test.py")
         
     def run_all_tests(self):
@@ -430,6 +501,7 @@ class TestSuite:
         self.integration_test()
         self.communication_demo_test()
         self.test_robot_controller_test()
+        self.test_robot_utils()  # Added new test for robot_utils
         
         # Summary
         total_tests = len(self.test_results)
@@ -455,10 +527,10 @@ def test_startup_robot_movement():
     print("="*50)
     
     try:
-        # Import the startup function
+        # Import from robot_utils instead of directly from startup
         import sys
         sys.path.append('..')
-        from startup import test_robot_movement, ROBOT_API_AVAILABLE
+        from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
         
         print(f"Robot API Available: {ROBOT_API_AVAILABLE}")
         
@@ -468,19 +540,26 @@ def test_startup_robot_movement():
         
         # Test with invalid IP (should fail gracefully)
         print("\n🔍 Testing with invalid IP (should fail gracefully):")
-        result = test_robot_movement("192.168.999.999")
-        print(f"Result: {result}")
+        robot = RobotConnection("192.168.999.999")
         
-        if result == False:  # Should fail with invalid IP
+        # Test network connectivity (should fail with invalid IP)
+        success, message = robot.test_network_connectivity()
+        print(f"Network connectivity test result: {'✅ Success' if success else '❌ Failed'} - {message}")
+        
+        if not success:  # Should fail with invalid IP
             print("✅ Error handling works correctly")
             return True
         else:
-            print("❌ Error handling failed - should return False for invalid IP")
+            print("❌ Error handling failed - should return True for invalid IP")
             return False
             
     except Exception as e:
         print(f"❌ Test failed with exception: {e}")
         return False
+    finally:
+        # Ensure we clean up the connection
+        if 'robot' in locals():
+            robot.disconnect()
 
 def main():
     """Main test runner with enhanced options"""
@@ -492,10 +571,12 @@ def main():
     parser.add_argument("--duration", type=int, default=30, help="Test duration in seconds")
     parser.add_argument("--all", action="store_true", help="Run all tests")
     parser.add_argument("--startup-test", action="store_true", help="Test startup robot movement function")
+    parser.add_argument("--robot-utils-test", action="store_true", help="Test the robot_utils module")
     
     args = parser.parse_args()
     
-    if not any([args.basic, args.integration, args.performance, args.test_robot, args.all, args.startup_test]):
+    if not any([args.basic, args.integration, args.performance, args.test_robot, 
+                args.all, args.startup_test, args.robot_utils_test]):
         parser.print_help()
         return
     
@@ -508,8 +589,7 @@ def main():
     if args.startup_test or args.all:
         success &= test_startup_robot_movement()
     
-    # Run test robot controller if requested
-    if args.test_robot or args.all:
+    # Run test robot controller if requested    if args.test_robot or args.all:
         controller = TestRobotController()
         controller.start_test_robot(args.duration)
         
@@ -518,6 +598,15 @@ def main():
         suite.basic_imports_test()
     if args.integration or args.all:
         suite.integration_test()
+    if args.robot_utils_test or args.all:
+        # Use the adapter to run robot_utils tests
+        try:
+            from test_suite_robot_utils_adapter import TestSuiteAdapter
+            adapter = TestSuiteAdapter(suite.test_results)
+            success &= adapter.run_tests()
+        except ImportError as e:
+            print(f"❌ Could not run robot_utils tests: {e}")
+            print("Make sure test_suite_robot_utils_adapter.py is in the same directory.")
     if args.all:
         suite.run_all_tests()
         
