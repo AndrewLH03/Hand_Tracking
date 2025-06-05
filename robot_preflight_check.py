@@ -26,6 +26,7 @@ import os
 import time
 import argparse
 import socket
+import re
 from typing import Optional
 
 # Add robot API path
@@ -66,7 +67,7 @@ class RobotPreflightChecker:
         self.test_results[test_name] = passed
         status = "✅" if passed else "❌"
         print(f"{status} {test_name}: {message}")
-    
+
     def test_network_connectivity(self) -> bool:
         """Test 1: Basic network connectivity"""
         print("\n" + "="*60)
@@ -88,13 +89,11 @@ class RobotPreflightChecker:
                 print("💡 Check robot IP address and network connection")
                 print("💡 Ensure robot is powered on and in TCP/IP mode")
                 return False
-                
-        except Exception as e:
+        except Exception as e:            
             self.log_test("Network Connectivity", False, f"Network error: {e}")
             return False
     
     def test_robot_connection(self) -> bool:
-        """Test 2: Robot API connection"""
         print("\n" + "="*60)
         print("🤖 TEST 2: ROBOT API CONNECTION")
         print("="*60)
@@ -106,7 +105,6 @@ class RobotPreflightChecker:
         try:
             # Create dashboard connection
             self.dashboard = DobotApiDashboard(self.robot_ip, self.dashboard_port)
-            
             # Test connection with basic command
             print("Connecting to robot dashboard...")
             mode_response = self.dashboard.RobotMode()
@@ -124,9 +122,9 @@ class RobotPreflightChecker:
             return False
     
     def test_robot_status(self) -> bool:
-        """Test 3: Robot status and alarms"""
+        """Test 3: Robot status and alarms with robot enablement"""
         print("\n" + "="*60)
-        print("⚕️ TEST 3: ROBOT STATUS")
+        print("⚕️ TEST 3: ROBOT STATUS & ENABLEMENT")
         print("="*60)
         
         if not self.dashboard:
@@ -134,50 +132,165 @@ class RobotPreflightChecker:
             return False
         
         try:
-            # Check robot mode
-            mode_response = self.dashboard.RobotMode()
+            # Step 1: Clear any existing errors first
+            print("Clearing any existing robot errors...")
+            try:
+                clear_result = self.dashboard.ClearError()
+                print(f"Clear errors result: {clear_result}")
+                time.sleep(1)
+            except Exception as e:
+                print(f"Note: Could not clear errors: {e}")
+            
+            # Step 2: Check and enable robot if needed
+            mode_response = self.dashboard.RobotMode()            
+            
             if mode_response:
-                robot_mode = mode_response[0] if isinstance(mode_response, list) else mode_response
-                print(f"Robot Mode: {robot_mode}")
-                
-                # Mode 5 is typically running mode
-                if str(robot_mode) in ['5', '9']:  # Running or ready modes
-                    mode_ok = True
+                # Parse robot mode more carefully - extract numeric mode from response
+                robot_mode_str = str(mode_response)
+                print(f"Raw robot mode response: {robot_mode_str}")
+                # Extract just the numeric mode from complex response
+                mode_match = re.search(r'\b([0-9]+)\b', robot_mode_str)
+                if mode_match:
+                    actual_mode = int(mode_match.group(1))
                 else:
-                    mode_ok = False
-                    print("💡 Robot may need to be enabled or switched to running mode")
+                    actual_mode = 0
+                
+                print(f"Parsed Robot Mode: {actual_mode}")
+                # Enable robot if it's not in running mode
+                if actual_mode != 5:  # Not in running mode
+                    print("Robot not enabled. Attempting to enable...")
+                    try:
+                        enable_result = self.dashboard.EnableRobot()
+                        print(f"Enable robot result: {enable_result}")
+                        
+                        # Wait for robot to enable with timeout and progress indication
+                        print("Waiting for robot to enable", end="")
+                        max_wait_time = 10  # seconds
+                        check_interval = 0.5  # seconds
+                        elapsed_time = 0
+                        mode_ok = False
+                        
+                        while elapsed_time < max_wait_time:
+                            time.sleep(check_interval)
+                            elapsed_time += check_interval
+                            print(".", end="", flush=True)
+                            
+                            # Check if robot is now enabled
+                            try:
+                                new_mode_response = self.dashboard.RobotMode()
+                                if new_mode_response:
+                                    new_mode_str = str(new_mode_response)
+                                    new_mode_match = re.search(r'\b([0-9]+)\b', new_mode_str)
+                                    if new_mode_match:
+                                        new_actual_mode = int(new_mode_match.group(1))
+                                        if new_actual_mode == 5:  # Successfully enabled
+                                            mode_ok = True
+                                            print(f"\n✅ Robot enabled successfully (mode {new_actual_mode}) after {elapsed_time:.1f}s")
+                                            break
+                            except Exception:
+                                continue  # Keep trying
+                        
+                        if not mode_ok:
+                            print(f"\n⏰ Timeout waiting for robot to enable after {max_wait_time}s")
+                            # One final check
+                            try:
+                                final_mode_response = self.dashboard.RobotMode()
+                                if final_mode_response:
+                                    final_mode_str = str(final_mode_response)
+                                    final_mode_match = re.search(r'\b([0-9]+)\b', final_mode_str)
+                                    if final_mode_match:
+                                        final_actual_mode = int(final_mode_match.group(1))
+                                        print(f"Final Robot Mode: {final_actual_mode}")
+                                        mode_ok = final_actual_mode == 5
+                            except Exception as e:
+                                print(f"Could not get final mode: {e}")
+                            
+                            if not mode_ok:
+                                print("💡 Robot may need to be manually enabled via teach pendant")
+                                print("💡 Check robot status on teach pendant display")
+                        
+                    except Exception as e:
+                        print(f"Failed to enable robot: {e}")
+                        print("💡 Try manually enabling robot via teach pendant")
+                        mode_ok = False
+                else:
+                    mode_ok = True
+                    print("✅ Robot is already in running mode")
             else:
                 mode_ok = False
                 print("Could not get robot mode")
             
-            # Check for alarms
-            alarm_response = self.dashboard.GetErrorID()
-            if alarm_response:
-                error_ids = alarm_response if isinstance(alarm_response, list) else [alarm_response]
-                # Filter out success responses (typically [0] or empty)
-                active_alarms = [e for e in error_ids if e != 0 and e != '0' and str(e).strip()]
-                
-                if active_alarms:
-                    self.log_test("Robot Status", False, f"Active alarms: {active_alarms}")
-                    print("💡 Clear robot alarms before proceeding")
-                    return False
+            # Step 3: Check for actual alarms with improved parsing
+            print("Checking for robot alarms...")
+            try:
+                alarm_response = self.dashboard.GetErrorID()
+                print(f"Raw alarm response: {alarm_response}")
+                # Improved alarm parsing - the response format is complex
+                alarm_ok = True
+                if alarm_response:
+                    alarm_str = str(alarm_response)
+                    
+                    # Check for actual error indicators
+                    # The response contains "null" and empty arrays when no errors
+                    # Also check for GetErrorID command echo which is part of normal response
+                    if ("null" in alarm_str or 
+                        "[]" in alarm_str or 
+                        "GetErrorID();" in alarm_str or
+                        alarm_str.strip() in ['0', '[]', 'null']):
+                        alarm_ok = True
+                        print("✅ No active alarms detected")
+                    else:
+                        # Look for actual numeric error codes (not 0, not in command echo)
+                        # Find actual error numbers (non-zero, not part of command formatting)
+                        error_numbers = re.findall(r'\b([1-9][0-9]*)\b', alarm_str)
+                        # Filter out numbers that are part of the API response formatting
+                        actual_errors = [e for e in error_numbers if e not in ['0', '1', '2', '3', '4', '5', '6'] or len(error_numbers) == 1]
+                        
+                        if actual_errors:
+                            alarm_ok = False
+                            print(f"❌ Active error codes detected: {actual_errors}")
+                            print("💡 Clear robot alarms via teach pendant before proceeding")
+                        else:
+                            alarm_ok = True
+                            print("✅ No active alarms detected")
                 else:
                     alarm_ok = True
-            else:
+                    print("✅ No alarm response (assuming OK)")
+                    
+            except Exception as e:
+                print(f"Could not check alarms: {e}")
                 alarm_ok = True  # Assume OK if we can't check
             
-            # Get current position for reference
+            # Step 4: Get current position for reference
             try:
+                print("Getting current robot position...")
                 pos_response = self.dashboard.GetPose()
                 if pos_response:
-                    position_data = pos_response if isinstance(pos_response, list) else [pos_response]
-                    print(f"Current position: {position_data}")
-                    self.initial_position = position_data[:6] if len(position_data) >= 6 else None
+                    # Parse position data from complex response
+                    position_str = str(pos_response)
+                    print(f"Raw position response: {position_str}")
+                    # Extract numeric values from the response
+                    numbers = re.findall(r'-?\d+\.?\d*', position_str)
+                    if len(numbers) >= 6:
+                        self.initial_position = [float(n) for n in numbers[:6]]
+                        print(f"Current position: X={self.initial_position[0]:.1f}, Y={self.initial_position[1]:.1f}, Z={self.initial_position[2]:.1f}")
+                    else:
+                        print(f"Could not parse position from: {numbers}")
             except Exception as e:
                 print(f"Could not get position: {e}")
             
+            # Final status assessment
             success = mode_ok and alarm_ok
-            status_msg = "Robot ready" if success else "Robot not ready"
+            if success:
+                status_msg = "Robot enabled and ready"
+            else:
+                issues = []
+                if not mode_ok:
+                    issues.append("mode not ready")
+                if not alarm_ok:
+                    issues.append("active alarms")
+                status_msg = f"Robot not ready: {', '.join(issues)}"
+            
             self.log_test("Robot Status", success, status_msg)
             return success
             
@@ -208,30 +321,71 @@ class RobotPreflightChecker:
                     return False
             
             print(f"Initial position: {self.initial_position}")
-            
             # Move to packing position
             print("Moving to packing position...")
             move_cmd = f"MovJ({','.join(map(str, self.packing_position))})"
+            print(f"Sending command: {move_cmd}")
             move_response = self.dashboard.mov(move_cmd)
+            print(f"Move command response: {move_response}")
             
-            # Wait for movement to complete
-            print("Waiting for movement to complete...")
-            time.sleep(3)
+            # Wait for movement to complete with better monitoring
+            print("Waiting for movement to complete", end="")
+            max_move_wait = 8  # seconds
+            move_check_interval = 0.5
+            move_elapsed = 0
+            
+            while move_elapsed < max_move_wait:
+                time.sleep(move_check_interval)
+                move_elapsed += move_check_interval
+                print(".", end="", flush=True)
+            
+            print(f"\nMovement wait completed after {move_elapsed:.1f}s")
             
             # Check if we reached the target
             current_pos_response = self.dashboard.GetPose()
             if current_pos_response:
-                current_pos = current_pos_response if isinstance(current_pos_response, list) else [current_pos_response]
-                current_pos = current_pos[:6] if len(current_pos) >= 6 else current_pos
-                print(f"Current position: {current_pos}")
+                # Parse current position properly
+                position_str = str(current_pos_response)
+                numbers = re.findall(r'-?\d+\.?\d*', position_str)
+                if len(numbers) >= 6:
+                    current_pos = [float(n) for n in numbers[:6]]
+                    print(f"Current position after move: X={current_pos[0]:.1f}, Y={current_pos[1]:.1f}, Z={current_pos[2]:.1f}")
+                    
+                    # Check if we're close to target
+                    distance = sum((current_pos[i] - self.packing_position[i])**2 for i in range(3))**0.5
+                    print(f"Distance from target: {distance:.1f}mm")
+                else:
+                    print(f"Could not parse current position: {numbers}")
             
             # Return to initial position
             print("Returning to initial position...")
             return_cmd = f"MovJ({','.join(map(str, self.initial_position))})"
+            print(f"Sending return command: {return_cmd}")
             return_response = self.dashboard.mov(return_cmd)
+            print(f"Return command response: {return_response}")
             
             # Wait for return movement
-            time.sleep(3)
+            print("Waiting for return movement", end="")
+            return_elapsed = 0
+            while return_elapsed < max_move_wait:
+                time.sleep(move_check_interval)
+                return_elapsed += move_check_interval
+                print(".", end="", flush=True)
+            
+            print(f"\nReturn movement completed after {return_elapsed:.1f}s")
+            
+            # Verify we're back at initial position
+            final_pos_response = self.dashboard.GetPose()
+            if final_pos_response:
+                position_str = str(final_pos_response)
+                numbers = re.findall(r'-?\d+\.?\d*', position_str)
+                if len(numbers) >= 6:
+                    final_pos = [float(n) for n in numbers[:6]]
+                    print(f"Final position: X={final_pos[0]:.1f}, Y={final_pos[1]:.1f}, Z={final_pos[2]:.1f}")
+                    
+                    # Check distance from initial
+                    return_distance = sum((final_pos[i] - self.initial_position[i])**2 for i in range(3))**0.5
+                    print(f"Distance from initial position: {return_distance:.1f}mm")
             
             self.log_test("Movement Test", True, "Movement test completed")
             return True
@@ -241,13 +395,20 @@ class RobotPreflightChecker:
             return False
     
     def cleanup(self):
-        """Clean up connections"""
+        """Clean up connections safely"""
         if self.dashboard:
             try:
-                self.dashboard.close()
-            except:
-                pass
-            self.dashboard = None
+                # Use the dashboard's built-in disconnect method if available
+                if hasattr(self.dashboard, 'disconnect'):
+                    self.dashboard.disconnect()
+                elif hasattr(self.dashboard, 'close'):
+                    self.dashboard.close()
+            except Exception as e:
+                # Ignore socket closing errors during cleanup
+                if "10038" not in str(e) and "not a socket" not in str(e).lower():
+                    print(f"Note: Error during cleanup: {e}")
+            finally:
+                self.dashboard = None
     
     def run_preflight_check(self, quick_test: bool = False) -> bool:
         """Run complete preflight check"""
