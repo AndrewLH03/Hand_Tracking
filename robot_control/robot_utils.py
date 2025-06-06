@@ -18,15 +18,20 @@ import re
 from typing import Optional, Tuple, List, Dict, Any, Union
 
 # Add robot API path if not already in path
-robot_api_path = os.path.join(os.path.dirname(__file__), 'TCP-IP-CR-Python-V4')
+# TCP-IP-CR-Python-V4 is in the parent directory of robot_control
+robot_api_path = os.path.join(os.path.dirname(__file__), '..', 'TCP-IP-CR-Python-V4')
+robot_api_path = os.path.abspath(robot_api_path)  # Convert to absolute path
 if robot_api_path not in sys.path:
     sys.path.append(robot_api_path)
 
 try:
     from dobot_api import DobotApiDashboard, DobotApiFeedBack
     ROBOT_API_AVAILABLE = True
+    print(f"✅ Robot API loaded successfully from: {robot_api_path}")
 except ImportError as e:
     print(f"❌ Robot API not available: {e}")
+    print(f"Attempted to load from: {robot_api_path}")
+    print(f"dobot_api.py exists: {os.path.exists(os.path.join(robot_api_path, 'dobot_api.py'))}")
     print("Please check TCP-IP-CR-Python-V4 installation.")
     ROBOT_API_AVAILABLE = False
 
@@ -47,10 +52,15 @@ def parse_api_response(response: Any, extract_mode: str = "numbers") -> Any:
         return None
         
     response_str = str(response)
-    
     if extract_mode == "numbers":
         return re.findall(r'-?\d+\.?\d*', response_str)
     elif extract_mode == "first_number":
+        # For robot mode responses like "0,{5},RobotMode();" extract the number inside braces
+        if "{" in response_str and "}" in response_str:
+            brace_match = re.search(r'\{([0-9]+)\}', response_str)
+            if brace_match:
+                return int(brace_match.group(1))
+        # Fallback to first number found
         match = re.search(r'\b([0-9]+)\b', response_str)
         return int(match.group(1)) if match else 0
     elif extract_mode == "status":
@@ -196,6 +206,8 @@ class RobotConnection:
         Returns:
             (success, message): Success flag and status message
         """
+        
+    
         if not ROBOT_API_AVAILABLE:
             return False, "Robot API not available"
         
@@ -306,14 +318,13 @@ class RobotConnection:
             return 0, message
             
         print(f"Raw robot mode response: {mode_response}")
-        
-        # Extract numeric mode using helper
+          # Extract numeric mode using helper
         actual_mode = parse_api_response(mode_response, "first_number")
         
-        # Mode descriptions
+        # Mode descriptions (updated for CR3 accuracy)
         mode_descriptions = {
-            0: "Unknown", 1: "Initializing", 2: "Standby", 3: "Disabled",
-            4: "Ready", 5: "Running", 6: "Error", 7: "Disconnected", 8: "Paused"
+            0: "Init", 1: "Brake Open", 2: "Disabled", 3: "Enabled/Ready",
+            4: "Backdrive", 5: "Running/Operational", 6: "Recording", 7: "Error", 8: "Paused", 9: "Collision"
         }
         
         description = mode_descriptions.get(actual_mode, "Unknown")
@@ -331,10 +342,12 @@ class RobotConnection:
         """
         # Get current mode
         actual_mode, description = self.get_robot_mode()
+        print(f"Current robot mode before enable: {actual_mode} ({description})")
         
-        # Only enable if not already in running mode
-        if actual_mode == 5:
-            return True, "Robot is already in running mode"
+        # Check if already in operational mode (3=Ready or 5=Running)
+        if actual_mode in [3, 5]:
+            print(f"✅ Robot is already operational (Mode {actual_mode}: {description})")
+            return True, f"Robot is already operational (Mode {actual_mode}: {description})"
         
         # Send enable command using helper
         success, message, result = execute_robot_command(self.dashboard, "EnableRobot")
@@ -346,13 +359,18 @@ class RobotConnection:
         # Wait for robot to enable with progress indication using helper
         def check_enabled():
             mode, _ = self.get_robot_mode()
-            return mode == 5
+            return mode in [3, 5]  # Accept both Ready (3) and Running (5) modes
             
         mode_ok, elapsed_time = wait_with_progress(
             "Waiting for robot to enable", timeout, 0.5, check_enabled
         )
         
-        return mode_ok, f"Robot enabled successfully after {elapsed_time:.1f}s" if mode_ok else "Robot enable timeout - may need manual intervention"
+        if mode_ok:
+            final_mode, final_description = self.get_robot_mode()
+            return True, f"Robot enabled successfully after {elapsed_time:.1f}s (Mode {final_mode}: {final_description})"
+        else:
+            final_mode, final_description = self.get_robot_mode()
+            return False, f"Robot enable timeout - Current mode: {final_mode} ({final_description}). May need manual intervention."
     
     def get_position(self) -> Tuple[bool, List[float]]:
         """
@@ -392,18 +410,22 @@ class RobotConnection:
         """
         if len(position) < 6:
             return False, "Invalid position - need 6 values"
-            
-        # Execute movement command using helper
+              # Execute movement command using helper
         if move_type == "MovL":
             success, message, result = execute_robot_command(
                 self.dashboard, "MovL", 
                 position[0], position[1], position[2],
                 position[3], position[4], position[5],
                 coordinateMode=0
-            )
+            )        
         else:
-            move_cmd = f"MovJ({','.join(map(str, position))})"
-            success, message, result = execute_robot_command(self.dashboard, "mov", move_cmd)
+            # MovJ movement
+            success, message, result = execute_robot_command(
+                self.dashboard, "MovJ", 
+                position[0], position[1], position[2],
+                position[3], position[4], position[5],
+                coordinateMode=0
+            )
             
         if not success:
             return False, message
