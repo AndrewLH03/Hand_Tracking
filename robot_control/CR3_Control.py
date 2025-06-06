@@ -25,8 +25,12 @@ from typing import Optional, Tuple, Dict, Any
 sys.path.append(os.path.join(os.path.dirname(__file__), 'TCP-IP-CR-Python-V4'))
 
 from dobot_api import DobotApiDashboard, DobotApiFeedBack
-from .robot_connection import RobotConnection
-from .robot_control import RobotController
+try:
+    from .robot_connection import RobotConnection
+    from .robot_control import RobotController
+except ImportError:
+    from robot_connection import RobotConnection
+    from robot_control import RobotController
 
 class CoordinateTransformer:
     """Handles coordinate transformation from MediaPipe to robot coordinates"""

@@ -13,9 +13,29 @@ import time
 import os
 from pathlib import Path
 
+# Add robot_control and UI directories to Python path for internal imports
+robot_control_path = os.path.join(os.path.dirname(__file__), 'robot_control')
+ui_path = os.path.join(os.path.dirname(__file__), 'UI')
+pose_tracking_path = os.path.join(os.path.dirname(__file__), 'Pose_Tracking')
+sys.path.insert(0, robot_control_path)
+sys.path.insert(0, ui_path)
+sys.path.insert(0, pose_tracking_path)
+
 # Import robot utilities
-from robot_control.robot_control import RobotSystem
-from robot_control.robot_connection import ROBOT_API_AVAILABLE
+try:
+    from robot_control.robot_control import RobotSystem
+    from robot_control.robot_connection import ROBOT_API_AVAILABLE
+except ImportError as e:
+    print(f"Warning: Robot control modules not available: {e}")
+    ROBOT_API_AVAILABLE = False
+    RobotSystem = None
+
+# Import shared testing utilities
+try:
+    from Testing import RobotTester
+except ImportError:
+    print("Warning: Testing package not available - using fallback testing")
+    RobotTester = None
 
 def check_dependencies():
     """Check if all required dependencies are available"""
@@ -48,9 +68,9 @@ def check_files():
     """Check if all required files exist"""
     print("\\nChecking files...")
     required_files = [
-        'robot_control/Hand_Tracking.py',
+        'Pose_Tracking/Hand_Tracking.py',
         'robot_control/CR3_Control.py',
-        'TCP-IP-CR-Python-V4/dobot_api.py'
+        'UI/ui_components.py'
     ]
     
     missing = []
@@ -92,7 +112,19 @@ def test_robot_movement(robot_ip):
     print(f"\\n🔧 Testing robot movement...")
     print(f"Connecting to robot at {robot_ip}...")
     
-    # Create a RobotSystem instance
+    # Use shared testing utilities if available
+    if RobotTester:
+        try:
+            tester = RobotTester(robot_ip)
+            success = tester.run_interactive_test(prompt_on_failure=True)
+            tester.cleanup()
+            return success
+        except Exception as e:
+            print(f"❌ Robot testing failed: {e}")
+            response = input("\\nContinue anyway? (y/N): ")
+            return response.lower().startswith('y')
+    
+    # Fallback to original implementation if shared utilities not available
     robot_system = RobotSystem(robot_ip)
     
     try:
@@ -152,7 +184,8 @@ def start_hand_tracking(robot_host, robot_port, hand, mirror):
     print(f"Robot port: {robot_port}")
     print(f"Tracking hand: {hand}")
     print(f"Mirror mode: {mirror}")
-    cmd = [sys.executable, 'robot_control/Hand_Tracking.py', '--enable-robot', 
+    
+    cmd = [sys.executable, 'Pose_Tracking/Hand_Tracking.py', '--enable-robot', 
            '--robot-host', robot_host, '--robot-port', str(robot_port),
            '--hand', hand]
     
@@ -212,7 +245,7 @@ def show_usage_guide():
     print("   python startup.py --robot-ip 192.168.1.6 --hand Left --mirror")
     print("\\n6. MANUAL STARTUP:")
     print("   Terminal 1: python robot_control/CR3_Control.py --robot-ip YOUR_IP")
-    print("   Terminal 2: python robot_control/Hand_Tracking.py --enable-robot")
+    print("   Terminal 2: python Pose_Tracking/Hand_Tracking.py --enable-robot")
     
     print("\\n🔧 ROBOT MOVEMENT TEST:")
     print("   - Tests robot connectivity and movement capability")

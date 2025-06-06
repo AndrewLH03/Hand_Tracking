@@ -21,6 +21,7 @@ import time
 import argparse
 from typing import Dict, Tuple
 from robot_control.robot_control import RobotSystem
+from Testing import RobotTester
 
 
 class RobotPreflightChecker:
@@ -29,114 +30,30 @@ class RobotPreflightChecker:
     def __init__(self, robot_ip: str = "192.168.1.6", timeout: float = 10.0):
         self.robot_ip = robot_ip
         self.timeout = timeout
-        self.robot_system = RobotSystem(robot_ip)
+        self.robot_tester = RobotTester(robot_ip, timeout)
         
     def perform_preflight_check(self) -> Tuple[bool, Dict[str, bool], Dict[str, str]]:
         """
-        Perform a comprehensive preflight check (moved from robot_utils.py/robot_control.py)
+        Perform a comprehensive preflight check using shared testing utilities
         
         Returns:
             (overall_success, test_results, test_messages)
         """
-        test_results = {}
-        test_messages = {}
-        
-        # Step 1: Network connectivity
         print("\n" + "="*60)
-        print("🌐 TEST 1: NETWORK CONNECTIVITY")
+        print("🚀 COMPREHENSIVE ROBOT PRE-FLIGHT CHECK")
         print("="*60)
         
-        success, message = self.robot_system.connection.test_network_connectivity()
-        test_results["Network Connectivity"] = success
-        test_messages["Network Connectivity"] = message
-        status = "✅" if success else "❌"
-        print(f"{status} Network Connectivity: {message}")
-        
-        if not success:
-            return False, test_results, test_messages
-        
-        # Step 2: Robot connection
-        print("\n" + "="*60)
-        print("🤖 TEST 2: ROBOT API CONNECTION")
-        print("="*60)
-        
-        success, message = self.robot_system.connection.connect()
-        test_results["Robot API Connection"] = success
-        test_messages["Robot API Connection"] = message
-        status = "✅" if success else "❌"
-        print(f"{status} Robot API Connection: {message}")
-        
-        if not success:
-            return False, test_results, test_messages
-        
-        # Update controller dashboard reference
-        self.robot_system.controller.dashboard = self.robot_system.connection.get_dashboard()
-        
-        # Step 3: Robot status
-        print("\n" + "="*60)
-        print("⚕️ TEST 3: ROBOT STATUS & ENABLEMENT")
-        print("="*60)
-        
-        # Clear errors
-        self.robot_system.connection.clear_errors()
-        time.sleep(1)
-        
-        # Check alarms BEFORE robot enablement
-        pre_alarm_ok, pre_errors = self.robot_system.connection.check_robot_alarms("Checking for robot alarms BEFORE enablement")
-        
-        # Enable robot
-        mode_ok, mode_message = self.robot_system.connection.enable_robot(self.timeout)
-        
-        # Check alarms AFTER robot enablement
-        post_alarm_ok, post_errors = self.robot_system.connection.check_robot_alarms("Checking for robot alarms AFTER enablement")
-        
-        # Get position for reference
-        self.robot_system.controller.get_position()
-        
-        # Final status assessment
-        alarm_ok = pre_alarm_ok and post_alarm_ok
-        status_success = mode_ok and alarm_ok
-        
-        if status_success:
-            status_msg = "Robot enabled and ready"
-        else:
-            issues = []
-            if not mode_ok:
-                issues.append("mode not ready")
-            if not alarm_ok:
-                issues.append("active alarms")
-            status_msg = f"Robot not ready: {', '.join(issues)}"
-        
-        test_results["Robot Status"] = status_success
-        test_messages["Robot Status"] = status_msg
-        status = "✅" if status_success else "❌"
-        print(f"{status} Robot Status: {status_msg}")
-        
-        if not status_success:
-            return False, test_results, test_messages
-        
-        # Step 4: Movement test
-        print("\n" + "="*60)
-        print("🏃 TEST 4: MOVEMENT TEST")
-        print("="*60)
-        
-        success, message = self.robot_system.controller.test_movement(use_packing_position=True)
-        test_results["Movement Test"] = success
-        test_messages["Movement Test"] = message
-        status = "✅" if success else "❌"
-        print(f"{status} Movement Test: {message}")
-        
-        # Overall result
-        overall_success = all(test_results.values())
-        
-        # Summary
+        # Use shared testing utilities for consistent behavior
+        overall_success, test_results, test_messages = self.robot_tester.run_full_test()
+          # Enhanced reporting with detailed breakdown
         print("\n" + "="*60)
         print("📋 PRE-FLIGHT CHECK SUMMARY")
         print("="*60)
         
         for test_name, passed in test_results.items():
             status = "✅" if passed else "❌"
-            print(f"{status} {test_name}")
+            message = test_messages[test_name]
+            print(f"{status} {test_name}: {message}")
         
         passed_tests = sum(1 for result in test_results.values() if result)
         total_tests = len(test_results)
@@ -150,33 +67,19 @@ class RobotPreflightChecker:
         return overall_success, test_results, test_messages
     
     def run_quick_test(self) -> bool:
-        """Run quick test without movement"""
-        success = True
+        """Run quick test without movement using shared utilities"""
+        print("🔧 QUICK ROBOT CHECK")
+        print("=" * 30)
         
-        # Network test
-        net_success, net_msg = self.robot_system.connection.test_network_connectivity()
-        print(f"🌐 Network: {'✅' if net_success else '❌'} {net_msg}")
-        success &= net_success
+        success, message = self.robot_tester.run_quick_test()
         
-        if net_success:
-            # Connection test
-            conn_success, conn_msg = self.robot_system.connection.connect()
-            print(f"🤖 Connection: {'✅' if conn_success else '❌'} {conn_msg}")
-            success &= conn_success
-            
-            if conn_success:
-                # Status test
-                self.robot_system.connection.clear_errors()
-                alarm_ok, _ = self.robot_system.connection.check_robot_alarms()
-                print(f"⚕️ Status: {'✅' if alarm_ok else '❌'} {'No alarms' if alarm_ok else 'Active alarms detected'}")
-                success &= alarm_ok
-        
-        print(f"\n{'🎉 QUICK CHECK PASSED' if success else '❌ QUICK CHECK FAILED'}")
+        status_text = "✅ QUICK CHECK PASSED" if success else "❌ QUICK CHECK FAILED"
+        print(f"\n{status_text}: {message}")
         return success
     
     def cleanup(self):
         """Clean up connections"""
-        self.robot_system.connection.disconnect()
+        self.robot_tester.cleanup()
 
 
 def main():

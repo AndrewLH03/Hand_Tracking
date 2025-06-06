@@ -1,53 +1,42 @@
-# Robot Control Testing Suite
+# Testing Package
 
-Comprehensive testing framework for the Hand Tracking Robot Control System. This testing suite provides complete verification, performance benchmarking, and debugging capabilities.
+Simple testing utilities package for the Hand Tracking Robot Control System.
 
-## 🚀 Quick Start
+## Purpose
 
-```bash
-# Navigate to testing directory
-cd Testing
+This package provides shared robot testing functionality used by:
+- `startup.py` - For interactive robot testing during system startup
+- `robot_preflight_check.py` - For comprehensive preflight verification
 
-# Complete system verification
-python test_runner.py --all
+## Files
 
-# Quick tests only
-python test_runner.py --all --quick
+- `__init__.py` - Package initialization and exports
+- `robot_testing_utils.py` - Core robot testing utilities and RobotTester class
 
-# Individual test categories
-python test_runner.py --robot
-python test_runner.py --communication
-python test_runner.py --performance
+## Usage
+
+```python
+from Testing import RobotTester, quick_robot_test, full_robot_test
+
+# Quick test without movement
+success = quick_robot_test("192.168.1.6")
+
+# Full test with movement
+success, results, messages = full_robot_test("192.168.1.6")
+
+# Custom testing
+tester = RobotTester("192.168.1.6")
+success = tester.run_interactive_test()
+tester.cleanup()
 ```
 
-## 📋 Test Suite Overview
+## Key Features
 
-### Core Testing Files
-
-| File | Purpose | Key Features |
-|------|---------|--------------|
-| `test_runner.py` | **Main test runner** | Unified interface for all tests |
-| `test_robot.py` | **Robot-related tests** | Connection, movement, robot utilities |
-| `test_communication.py` | **Communication tests** | Server connection, protocol, data transmission |
-| `test_performance.py` | **Performance benchmarks** | Coordinate transformation, network, system monitoring |
-
-
-## 🧪 test_runner.py - Main Test Runner
-
-### Overview
-Unified test runner that provides a centralized interface to run all system tests.
-
-### Available Test Modes
-
-```bash
-# Show all options
-python test_runner.py --help
-
-# Run all tests
-python test_runner.py --all
-
-# Run only robot tests
-python test_runner.py --robot
+- **Eliminates code duplication** between startup and preflight check scripts
+- **Consistent testing behavior** across all robot verification scenarios  
+- **Flexible testing modes** - quick, full, and interactive tests
+- **Proper error handling** and connection cleanup
+- **User-friendly output** with clear status messages
 
 # Run only communication tests
 python test_runner.py --communication
