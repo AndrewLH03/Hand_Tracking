@@ -296,7 +296,8 @@ Hand_Tracking/
 ├── robot_control/                 # Core robot control modules
 │   ├── Hand_Tracking.py          # Main hand tracking with robot integration
 │   ├── CR3_Control.py            # Robot controller (hardware required)
-│   └── robot_utils.py            # Robot utility functions
+│   ├── robot_connection.py       # Robot connection management
+│   └── robot_control.py          # Robot control and integration
 ├── startup.py                     # Automated startup script
 ├── README.md                      # This documentation
 ├── TCP-IP-CR-Python-V4/       # DoBot API directory

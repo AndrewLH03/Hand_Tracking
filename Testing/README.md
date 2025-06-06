@@ -76,8 +76,8 @@ python test_robot.py --connection
 # Test robot movement
 python test_robot.py --movement
 
-# Test robot_utils module
-python test_robot.py --utils
+# Test robot system (connection and control)
+python test_robot.py --system
 
 # Run all robot tests
 python test_robot.py --all
@@ -182,15 +182,15 @@ python test_performance.py --all
 - 💻 Tracks resource utilization over time
 - 💻 Identifies potential bottlenecks
 
-## 🔄 Integration with robot_utils
+## 🔄 Integration with Robot Control System
 
-The testing suite now fully integrates with the `robot_utils` module, providing comprehensive testing of:
+The testing suite now fully integrates with the modernized robot control modules, providing comprehensive testing of:
 
 - Robot connection and network connectivity
-- Robot alarm checking and handling
+- Robot alarm checking and handling  
 - Robot movement and positioning
 - Command and response parsing
-- New helper functions: `parse_api_response()`, `wait_with_progress()`, `execute_robot_command()`, `validate_position()`
+- Integrated `RobotSystem` class that combines connection and control functionality
 
 ## 📋 System Requirements
 
