@@ -28,7 +28,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Import robot_utils if available
 try:
-    from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
+    from robot_control.robot_utils import RobotConnection, ROBOT_API_AVAILABLE
 except ImportError as e:
     print(f"Warning: Could not import robot_utils module: {e}")
     ROBOT_API_AVAILABLE = False

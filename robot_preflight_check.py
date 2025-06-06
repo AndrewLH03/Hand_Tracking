@@ -17,7 +17,7 @@ Options:
 
 import sys
 import argparse
-from robot_utils import RobotConnection
+from robot_control.robot_utils import RobotConnection
 
 
 def main():

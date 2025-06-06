@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 
 # Import robot utilities
-from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
+from robot_control.robot_utils import RobotConnection, ROBOT_API_AVAILABLE
 
 def check_dependencies():
     """Check if all required dependencies are available"""
@@ -46,10 +46,9 @@ def check_dependencies():
 def check_files():
     """Check if all required files exist"""
     print("\\nChecking files...")
-    
     required_files = [
-        'Hand_Tracking.py',
-        'CR3_Control.py',
+        'robot_control/Hand_Tracking.py',
+        'robot_control/CR3_Control.py',
         'TCP-IP-CR-Python-V4/dobot_api.py'
     ]
     
@@ -73,7 +72,7 @@ def start_robot_controller(robot_ip, port):
     print(f"Robot IP: {robot_ip}")
     print(f"Server port: {port}")
     
-    cmd = [sys.executable, 'CR3_Control.py', '--robot-ip', robot_ip, '--server-port', str(port)]
+    cmd = [sys.executable, 'robot_control/CR3_Control.py', '--robot-ip', robot_ip, '--server-port', str(port)]
     
     try:
         process = subprocess.Popen(cmd)
@@ -152,8 +151,7 @@ def start_hand_tracking(robot_host, robot_port, hand, mirror):
     print(f"Robot port: {robot_port}")
     print(f"Tracking hand: {hand}")
     print(f"Mirror mode: {mirror}")
-    
-    cmd = [sys.executable, 'Hand_Tracking.py', '--enable-robot', 
+    cmd = [sys.executable, 'robot_control/Hand_Tracking.py', '--enable-robot', 
            '--robot-host', robot_host, '--robot-port', str(robot_port),
            '--hand', hand]
     
@@ -211,10 +209,9 @@ def show_usage_guide():
     
     print("\\n5. CUSTOM SETTINGS:")
     print("   python startup.py --robot-ip 192.168.1.6 --hand Left --mirror")
-    
     print("\\n6. MANUAL STARTUP:")
-    print("   Terminal 1: python CR3_Control.py --robot-ip YOUR_IP")
-    print("   Terminal 2: python Hand_Tracking.py --enable-robot")
+    print("   Terminal 1: python robot_control/CR3_Control.py --robot-ip YOUR_IP")
+    print("   Terminal 2: python robot_control/Hand_Tracking.py --enable-robot")
     
     print("\\n🔧 ROBOT MOVEMENT TEST:")
     print("   - Tests robot connectivity and movement capability")

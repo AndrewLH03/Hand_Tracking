@@ -28,7 +28,7 @@ def main():
     
     # Import robot_utils module
     try:
-        from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
+        from robot_control.robot_utils import RobotConnection, ROBOT_API_AVAILABLE
         print(f"✓ Imported robot_utils module successfully")
         print(f"✓ Robot API available: {ROBOT_API_AVAILABLE}")
         

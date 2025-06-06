@@ -21,10 +21,10 @@ python startup.py --robot-ip 192.168.1.6 --skip-robot-test
 ### Option 3: Manual Startup (with hardware)
 ```bash
 # Terminal 1 - Robot Controller
-python CR3_Control.py --robot-ip 192.168.1.6
+python robot_control/CR3_Control.py --robot-ip 192.168.1.6
 
 # Terminal 2 - Hand Tracking
-python Hand_Tracking.py --enable-robot
+python robot_control/Hand_Tracking.py --enable-robot
 ```
 
 ### Option 4: Test Mode (no hardware required)
@@ -33,7 +33,7 @@ python Hand_Tracking.py --enable-robot
 python Testing/test_runner.py --robot
 
 # Terminal 2 - Hand Tracking
-python Hand_Tracking.py --enable-robot
+python robot_control/Hand_Tracking.py --enable-robot
 ```
 
 ## 📋 System Overview
@@ -42,14 +42,14 @@ python Hand_Tracking.py --enable-robot
 
 | File | Purpose | Hardware Required |
 |------|---------|-------------------|
-| `Hand_Tracking.py` | MediaPipe hand tracking + camera | Camera |
-| `CR3_Control.py` | Real robot controller | DoBot CR3 Robot |
+| `robot_control/Hand_Tracking.py` | MediaPipe hand tracking + camera | Camera |
+| `robot_control/CR3_Control.py` | Real robot controller | DoBot CR3 Robot |
 | `startup.py` | Automated system launcher | Optional |
 
 ### System Architecture
 
 ```
-[Camera] → [Hand_Tracking.py] → [TCP/IP] → [CR3_Control.py] → [DoBot CR3]
+[Camera] → [robot_control/Hand_Tracking.py] → [TCP/IP] → [robot_control/CR3_Control.py] → [DoBot CR3]
     ↓           ↓                   ↓            ↓              ↓
 MediaPipe   Coordinate         JSON over    Coordinate    Robot MovL
 Detection   Extraction          Socket      Transform     Commands
@@ -144,7 +144,7 @@ python robot_preflight_check.py --robot-ip 192.168.1.6 --timeout 15
 
 ### Hand_Tracking.py Options
 ```bash
-python Hand_Tracking.py --help
+python robot_control/Hand_Tracking.py --help
 
 Options:
   --enable-robot          # Enable robot integration
@@ -157,7 +157,7 @@ Options:
 
 ### CR3_Control.py Options
 ```bash
-python CR3_Control.py --help
+python robot_control/CR3_Control.py --help
 
 Options:
   --robot-ip IP           # Robot IP address (default: 192.168.1.6)
@@ -246,14 +246,14 @@ max_hands = 2              # Maximum hands to detect
 **Camera not detected:**
 ```bash
 # Test different camera indices
-python Hand_Tracking.py --camera-index 1
+python robot_control/Hand_Tracking.py --camera-index 1
 ```
 
 **Robot connection failed:**
 ```bash
 # Verify robot IP and network
 ping 192.168.1.6
-python CR3_Control.py --robot-ip YOUR_ROBOT_IP
+python robot_control/CR3_Control.py --robot-ip YOUR_ROBOT_IP
 ```
 
 **No hand detection:**
@@ -277,13 +277,13 @@ python Testing/test_runner.py --all --quick
 ### Debug Commands
 ```bash
 # Test coordinate transformation
-python -c "from CR3_Control import CoordinateTransformer; print('OK')"
+python -c "from robot_control.CR3_Control import CoordinateTransformer; print('OK')"
 
 # Test hand tracking modules  
-python -c "from Hand_Tracking import RobotClient; print('OK')"
+python -c "from robot_control.Hand_Tracking import RobotClient; print('OK')"
 
 # Test robot utilities
-python -c "from robot_utils import RobotConnection; print('OK')"
+python -c "from robot_control.robot_utils import RobotConnection; print('OK')"
 
 # Full system verification
 python Testing/test_runner.py --all
@@ -293,10 +293,12 @@ python Testing/test_runner.py --all
 
 ```
 Hand_Tracking/
-├── Hand_Tracking.py           # Main hand tracking with robot integration
-├── CR3_Control.py             # Robot controller (hardware required)
-├── startup.py                 # Automated startup script
-├── README.md                  # This documentation
+├── robot_control/                 # Core robot control modules
+│   ├── Hand_Tracking.py          # Main hand tracking with robot integration
+│   ├── CR3_Control.py            # Robot controller (hardware required)
+│   └── robot_utils.py            # Robot utility functions
+├── startup.py                     # Automated startup script
+├── README.md                      # This documentation
 ├── TCP-IP-CR-Python-V4/       # DoBot API directory
 │   └── dobot_api.py           # Robot communication API
 └── Testing/                   # Comprehensive testing suite
@@ -327,10 +329,10 @@ The system is designed for real-time operation with sub-100ms latency from hand 
 ## 🚀 Advanced Usage
 
 ### Custom Gestures
-Extend `Hand_Tracking.py` to recognize specific hand gestures for different robot behaviors.
+Extend `robot_control/Hand_Tracking.py` to recognize specific hand gestures for different robot behaviors.
 
 ### Multi-Robot Control
-Modify `CR3_Control.py` to control multiple robots simultaneously.
+Modify `robot_control/CR3_Control.py` to control multiple robots simultaneously.
 
 ### Workspace Calibration
 Adjust coordinate transformation parameters for different working environments.

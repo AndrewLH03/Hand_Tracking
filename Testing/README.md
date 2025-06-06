@@ -284,7 +284,7 @@ python test_runner.py --robot
 ```bash
 # Symptom: "Connection refused" or "Server not responding"
 # Solution: Start robot controller first, then run tests
-python ../CR3_Control.py --robot-ip YOUR_ROBOT_IP  # In one terminal
+python ../robot_control/CR3_Control.py --robot-ip YOUR_ROBOT_IP  # In one terminal
 python test_communication.py --server              # In another
 ```
 
@@ -301,13 +301,13 @@ python test_performance.py --all --verbose
 
 ```bash
 # Check all imports
-python -c "import sys; sys.path.append('..'); from CR3_Control import *; from Hand_Tracking import *; print('All imports OK')"
+python -c "import sys; sys.path.append('..'); from robot_control.CR3_Control import *; from robot_control.Hand_Tracking import *; print('All imports OK')"
 
 # Test coordinate transformation
-python -c "import sys; sys.path.append('..'); from CR3_Control import CoordinateTransformer; t=CoordinateTransformer(); print('CoordinateTransformer OK')"
+python -c "import sys; sys.path.append('..'); from robot_control.CR3_Control import CoordinateTransformer; t=CoordinateTransformer(); print('CoordinateTransformer OK')"
 
 # Test robot utils
-python -c "import sys; sys.path.append('..'); from robot_utils import *; print('robot_utils OK')"
+python -c "import sys; sys.path.append('..'); from robot_control.robot_utils import *; print('robot_utils OK')"
 ```
 
 ## 🚨 Error Codes and Messages

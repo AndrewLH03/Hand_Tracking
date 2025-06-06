@@ -21,7 +21,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Import robot_utils module
 try:
-    from robot_utils import RobotConnection, ROBOT_API_AVAILABLE
+    from robot_control.robot_utils import RobotConnection, ROBOT_API_AVAILABLE
 except ImportError as e:
     print(f"Error: Could not import robot_utils module: {e}")
     print("Make sure the robot_utils.py file is in the parent directory.")
