@@ -40,9 +40,33 @@ class CoordinateTransformer:
         self.workspace_size = workspace_size
         self.height_offset = height_offset
         
+        # Calibration parameters for proper scaling
+        self.human_arm_reach = 0.4  # Typical arm reach in MediaPipe normalized coordinates
+        self.robot_reach_scale = 0.7  # Use 70% of robot workspace for safety
+        self.movement_scale_factor = 0.6  # Scale down movements for precision
+        
+        # Coordinate system transformation parameters
+        # MediaPipe: X=left->right, Y=top->bottom, Z=away from camera
+        # Robot: X=forward, Y=left, Z=up (typical robot coordinate system)
+        self.axis_mapping = {
+            'x_scale': -1.0,  # Invert X axis
+            'y_scale': 1.0,   # Keep Y axis same
+            'z_scale': -1.0   # Invert Z axis
+        }
+        
+        # Safety workspace boundaries (mm)
+        self.safe_bounds = {
+            'x_min': -200, 'x_max': 300,    # Robot forward/backward reach
+            'y_min': -250, 'y_max': 250,    # Robot left/right reach  
+            'z_min': 100,  'z_max': 400     # Robot height range
+        }
+        
+        # Debug mode for coordinate tracking
+        self.debug = True
+        
     def transform_to_robot_coords(self, shoulder: list, wrist: list) -> Tuple[float, float, float]:
         """
-        Transform MediaPipe coordinates to robot coordinates
+        Transform MediaPipe coordinates to robot coordinates with proper scaling and validation
         
         Args:
             shoulder: [x, y, z] normalized coordinates (0-1) from MediaPipe
@@ -51,23 +75,122 @@ class CoordinateTransformer:
         Returns:
             tuple: (x, y, z) coordinates in robot coordinate system (mm)
         """
+        if self.debug:
+            print(f"Input - Shoulder: [{shoulder[0]:.3f}, {shoulder[1]:.3f}, {shoulder[2]:.3f}]")
+            print(f"Input - Wrist: [{wrist[0]:.3f}, {wrist[1]:.3f}, {wrist[2]:.3f}]")
+        
         # Calculate relative position from shoulder to wrist
         rel_x = wrist[0] - shoulder[0]
         rel_y = wrist[1] - shoulder[1] 
         rel_z = wrist[2] - shoulder[2]
         
-        # Scale to robot workspace
-        # MediaPipe coordinates are normalized (0-1), we need to scale appropriately
-        robot_x = rel_x * self.workspace_size
-        robot_y = rel_y * self.workspace_size
-        robot_z = -rel_z * self.workspace_size + self.height_offset  # Invert Z and add offset
+        if self.debug:
+            print(f"Relative: [{rel_x:.3f}, {rel_y:.3f}, {rel_z:.3f}]")
         
-        # Apply safety limits
-        robot_x = max(-self.workspace_size/2, min(self.workspace_size/2, robot_x))
-        robot_y = max(-self.workspace_size/2, min(self.workspace_size/2, robot_y))
-        robot_z = max(50, min(self.workspace_size, robot_z))  # Keep above table
+        # Apply coordinate system transformation and scaling
+        # Transform MediaPipe coordinates to robot coordinate system
+        robot_x = (rel_y * self.axis_mapping['x_scale'] * 
+                  self.workspace_size * self.robot_reach_scale * self.movement_scale_factor)
+        robot_y = (rel_x * self.axis_mapping['y_scale'] * 
+                  self.workspace_size * self.robot_reach_scale * self.movement_scale_factor)
+        robot_z = (rel_z * self.axis_mapping['z_scale'] * 
+                  self.workspace_size * self.robot_reach_scale * self.movement_scale_factor) + self.height_offset
+        
+        if self.debug:
+            print(f"Pre-validation: X:{robot_x:.1f}, Y:{robot_y:.1f}, Z:{robot_z:.1f}")
+        
+        # Apply safety limits and validation
+        robot_x, robot_y, robot_z = self.validate_position(robot_x, robot_y, robot_z)
+        
+        if self.debug:
+            print(f"Final robot coords: X:{robot_x:.1f}, Y:{robot_y:.1f}, Z:{robot_z:.1f}")
+            print("-" * 50)
         
         return robot_x, robot_y, robot_z
+    
+    def validate_position(self, x: float, y: float, z: float) -> Tuple[float, float, float]:
+        """
+        Validate and constrain robot position to safe workspace boundaries
+        
+        Args:
+            x, y, z: Proposed robot coordinates in mm
+            
+        Returns:
+            tuple: (x, y, z) validated and constrained coordinates
+        """
+        # Apply safety bounds
+        x_safe = max(self.safe_bounds['x_min'], min(self.safe_bounds['x_max'], x))
+        y_safe = max(self.safe_bounds['y_min'], min(self.safe_bounds['y_max'], y))
+        z_safe = max(self.safe_bounds['z_min'], min(self.safe_bounds['z_max'], z))
+        
+        # Check if any coordinates were constrained
+        if x != x_safe or y != y_safe or z != z_safe:
+            if self.debug:
+                print(f"WARNING: Position constrained from ({x:.1f}, {y:.1f}, {z:.1f}) to ({x_safe:.1f}, {y_safe:.1f}, {z_safe:.1f})")
+        
+        return x_safe, y_safe, z_safe
+    
+    def calibrate_workspace(self, test_movements: list) -> bool:
+        """
+        Calibrate the coordinate transformation based on test movements
+        
+        Args:
+            test_movements: List of (shoulder, wrist, expected_robot_pos) tuples for calibration
+            
+        Returns:
+            bool: True if calibration was successful
+        """
+        print("Starting workspace calibration...")
+        
+        # Calculate scaling factors based on test movements
+        total_error = 0.0
+        valid_movements = 0
+        
+        for shoulder, wrist, expected_pos in test_movements:
+            calculated_pos = self.transform_to_robot_coords(shoulder, wrist)
+            
+            # Calculate error
+            error = math.sqrt(
+                (calculated_pos[0] - expected_pos[0])**2 +
+                (calculated_pos[1] - expected_pos[1])**2 +
+                (calculated_pos[2] - expected_pos[2])**2
+            )
+            
+            total_error += error
+            valid_movements += 1
+            
+            print(f"Test movement - Expected: {expected_pos}, Calculated: {calculated_pos}, Error: {error:.1f}mm")
+        
+        if valid_movements > 0:
+            avg_error = total_error / valid_movements
+            print(f"Calibration complete. Average error: {avg_error:.1f}mm")
+            
+            # Adjust scaling factors if error is too high
+            if avg_error > 50:  # 50mm tolerance
+                adjustment_factor = 50 / avg_error
+                self.movement_scale_factor *= adjustment_factor
+                print(f"Adjusted movement scale factor to: {self.movement_scale_factor:.3f}")
+            
+            return True
+        else:
+            print("Calibration failed - no valid test movements")
+            return False
+    
+    def set_debug_mode(self, debug: bool):
+        """Enable or disable debug output"""
+        self.debug = debug
+        
+    def get_workspace_info(self) -> Dict[str, Any]:
+        """Get current workspace configuration information"""
+        return {
+            'workspace_size': self.workspace_size,
+            'height_offset': self.height_offset,
+            'human_arm_reach': self.human_arm_reach,
+            'robot_reach_scale': self.robot_reach_scale,
+            'movement_scale_factor': self.movement_scale_factor,
+            'safe_bounds': self.safe_bounds,
+            'axis_mapping': self.axis_mapping
+        }
 
 class HandTrackingServer:
     """TCP server to receive coordinates from hand tracking"""
