@@ -95,10 +95,10 @@ python test_robot.py --all
 - ✅ Validates robot status and mode
 - ✅ Tests actual robot movement (when using --safe-movement)
 
-#### 3. Robot Utilities Test (`--utils`)
-- ✅ Tests the robot_utils module functionality
+#### 3. Robot System Test (`--utils`)
+- ✅ Tests the robot system module functionality
 - ✅ Validates response parsing and error handling
-- ✅ Tests RobotConnection class functionality
+- ✅ Tests RobotSystem class functionality
 
 ## 🌐 test_communication.py - Communication Tests
 
@@ -306,8 +306,8 @@ python -c "import sys; sys.path.append('..'); from robot_control.CR3_Control imp
 # Test coordinate transformation
 python -c "import sys; sys.path.append('..'); from robot_control.CR3_Control import CoordinateTransformer; t=CoordinateTransformer(); print('CoordinateTransformer OK')"
 
-# Test robot utils
-python -c "import sys; sys.path.append('..'); from robot_control.robot_utils import *; print('robot_utils OK')"
+# Test robot system
+python -c "import sys; sys.path.append('..'); from robot_control.robot_control import RobotSystem; print('robot system OK')"
 ```
 
 ## 🚨 Error Codes and Messages

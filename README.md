@@ -204,7 +204,7 @@ python Testing/test_robot.py --utils
 |-----------|---------|---------|
 | Robot Connection | `python Testing/test_robot.py --connection` | Test robot connectivity and API |
 | Robot Movement | `python Testing/test_robot.py --movement` | Test robot movement capabilities |
-| Robot Utils | `python Testing/test_robot.py --utils` | Test robot utilities module |
+| Robot System | `python Testing/test_robot.py --utils` | Test robot system module |
 | All Robot Tests | `python Testing/test_robot.py --all` | Complete robot test suite |
 | Communication | `python Testing/test_communication.py --all` | Test TCP/IP networking |
 | Performance | `python Testing/test_performance.py --all` | Performance benchmarking |
@@ -282,8 +282,8 @@ python -c "from robot_control.CR3_Control import CoordinateTransformer; print('O
 # Test hand tracking modules  
 python -c "from robot_control.Hand_Tracking import RobotClient; print('OK')"
 
-# Test robot utilities
-python -c "from robot_control.robot_utils import RobotConnection; print('OK')"
+# Test robot system
+python -c "from robot_control.robot_control import RobotSystem; print('OK')"
 
 # Full system verification
 python Testing/test_runner.py --all

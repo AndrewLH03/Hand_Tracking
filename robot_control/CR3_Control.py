@@ -25,6 +25,8 @@ from typing import Optional, Tuple, Dict, Any
 sys.path.append(os.path.join(os.path.dirname(__file__), 'TCP-IP-CR-Python-V4'))
 
 from dobot_api import DobotApiDashboard, DobotApiFeedBack
+from .robot_connection import RobotConnection
+from .robot_control import RobotController
 
 class CoordinateTransformer:
     """Handles coordinate transformation from MediaPipe to robot coordinates"""
@@ -274,12 +276,10 @@ class CR3RobotController:
             robot_ip: IP address of the CR3 robot
         """
         self.robot_ip = robot_ip
-        self.dashboard_port = 29999
-        self.feed_port = 30004
         
-        # Robot connection objects
-        self.dashboard = None
-        self.feed = None
+        # Use consolidated robot control classes
+        self.robot_connection = RobotConnection(robot_ip)
+        self.robot_controller = RobotController(self.robot_connection)
         
         # Control objects
         self.coordinate_transformer = CoordinateTransformer()
@@ -287,69 +287,28 @@ class CR3RobotController:
         
         # State variables
         self.running = False
-        self.robot_enabled = False
         self.current_position = [0.0, 0.0, 200.0, 0.0, 0.0, 0.0]  # x, y, z, rx, ry, rz
         self.lock = threading.Lock()
         
         # Movement parameters
-        self.movement_speed = 50  # mm/s
         self.movement_threshold = 5.0  # mm - minimum movement to execute
         
     def connect_robot(self) -> bool:
-        """Connect to the CR3 robot"""
-        try:
-            print(f"Connecting to robot at {self.robot_ip}...")
-            
-            # Connect to dashboard (control interface)
-            self.dashboard = DobotApiDashboard(self.robot_ip, self.dashboard_port)
-            
-            # Connect to feedback interface
-            self.feed = DobotApiFeedBack(self.robot_ip, self.feed_port)
-            
-            print("Robot connected successfully")
-            return True
-            
-        except Exception as e:
-            print(f"Failed to connect to robot: {e}")
-            return False
-            
+        """Connect to the CR3 robot using consolidated connection class"""
+        return self.robot_connection.connect()[0]
+        
     def enable_robot(self) -> bool:
-        """Enable the robot"""
-        try:
-            if not self.dashboard:
-                print("Robot not connected")
-                return False
-                
-            print("Enabling robot...")
-            result = self.dashboard.EnableRobot()
-            
-            if "0" in result:  # Check for success
-                self.robot_enabled = True
-                print("Robot enabled successfully")
-                return True
-            else:
-                print(f"Failed to enable robot: {result}")
-                return False
-                
-        except Exception as e:
-            print(f"Error enabling robot: {e}")
-            return False
-            
+        """Enable the robot using consolidated connection class"""
+        return self.robot_connection.enable_robot()[0]
+        
     def disable_robot(self):
-        """Disable the robot"""
-        try:
-            if self.dashboard and self.robot_enabled:
-                print("Disabling robot...")
-                self.dashboard.DisableRobot()
-                self.robot_enabled = False
-                print("Robot disabled")
-        except Exception as e:
-            print(f"Error disabling robot: {e}")
-            
+        """Disable the robot using consolidated connection class"""
+        self.robot_connection.disconnect()
+        
     def move_to_position(self, x: float, y: float, z: float, 
                         rx: float = 0.0, ry: float = 0.0, rz: float = 0.0) -> bool:
         """
-        Move robot to specified position using linear movement
+        Move robot to specified position using consolidated controller
         
         Args:
             x, y, z: Position coordinates in mm
@@ -359,9 +318,6 @@ class CR3RobotController:
             bool: True if movement command was sent successfully
         """
         try:
-            if not self.robot_enabled:
-                return False
-                
             # Check if movement is significant enough
             distance = math.sqrt(
                 (x - self.current_position[0])**2 + 
@@ -372,22 +328,22 @@ class CR3RobotController:
             if distance < self.movement_threshold:
                 return True  # Movement too small, skip
                 
-            # Use MovL (linear movement) with pose coordinates
-            result = self.dashboard.MovL(x, y, z, rx, ry, rz, 
-                                       coordinateMode=0,  # pose mode
-                                       speed=self.movement_speed)
+            # Use consolidated robot controller
+            success, message = self.robot_controller.move_to_position([x, y, z, rx, ry, rz])
             
-            if "0" in result:  # Check for success
+            if success:
                 with self.lock:
                     self.current_position = [x, y, z, rx, ry, rz]
                 return True
             else:
-                print(f"Movement failed: {result}")
+                print(f"Movement failed: {message}")
                 return False
                 
         except Exception as e:
             print(f"Error moving robot: {e}")
             return False
+              # Robot control methods moved to robot_connection.py and robot_control.py
+    # Use RobotConnection and RobotController classes for robot operations
             
     def process_hand_tracking_data(self):
         """Process incoming hand tracking data and move robot accordingly"""

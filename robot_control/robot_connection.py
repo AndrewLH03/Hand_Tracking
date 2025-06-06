@@ -1,21 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Robot Utility Module (DEPRECATED - June 6, 2025)
+Robot Connection Management Module
 
-⚠️  DEPRECATION NOTICE ⚠️
-This module has been split into two separate modules for better organization:
-- robot_connection.py: Connection management, network testing, alarms, enabling
-- robot_control.py: Movement control, positioning, and integrated system
-
-Please update your imports:
-  OLD: from robot_control.robot_utils import RobotConnection
-  NEW: from robot_control.robot_control import RobotSystem
-
-This file is maintained for backward compatibility but will be removed in a future version.
-
-This refactored version includes helper functions to reduce code complexity
-by 30% through consolidation of repetitive patterns.
+Handles robot connectivity, network testing, connection establishment,
+alarm checking, robot enabling, and basic status operations.
+Used by both preflight check and main control systems.
 """
 
 import sys
@@ -23,11 +13,7 @@ import os
 import time
 import socket
 import re
-from typing import Optional, Tuple, List, Dict, Any, Union
-
-print("⚠️  DEPRECATION WARNING: robot_utils.py is deprecated. Use robot_control.py instead.")
-print("   OLD: from robot_control.robot_utils import RobotConnection")
-print("   NEW: from robot_control.robot_control import RobotSystem")
+from typing import Optional, Tuple, List, Dict, Any
 
 # Add robot API path if not already in path
 # TCP-IP-CR-Python-V4 is in the parent directory of robot_control
@@ -48,7 +34,7 @@ except ImportError as e:
     ROBOT_API_AVAILABLE = False
 
 
-# Helper utility functions
+# Helper utility functions for connection management
 def parse_api_response(response: Any, extract_mode: str = "numbers") -> Any:
     """
     Generic API response parser helper method to reduce redundant parsing logic
@@ -139,34 +125,13 @@ def execute_robot_command(dashboard, command_name: str, *args, **kwargs) -> Tupl
         return False, f"{command_name} failed: {e}", None
 
 
-def validate_position(current_pos: List[float], target_pos: List[float], 
-                     tolerance: float = 5.0) -> Tuple[bool, float]:
-    """
-    Extract position verification logic to helper method
-    
-    Args:
-        current_pos: Current position [x,y,z,rx,ry,rz]
-        target_pos: Target position [x,y,z,rx,ry,rz]
-        tolerance: Acceptable distance tolerance (mm)
-        
-    Returns:
-        (within_tolerance, distance): Whether position is within tolerance and actual distance
-    """
-    if len(current_pos) < 3 or len(target_pos) < 3:
-        return False, float('inf')
-        
-    # Calculate 3D distance (position only, ignore orientation)
-    distance = sum((current_pos[i] - target_pos[i])**2 for i in range(3))**0.5
-    return distance < tolerance, distance
-
-
 class RobotConnection:
-    """Class to handle robot connections and common operations"""
+    """Class to handle robot connectivity, status checking, and enabling"""
     
     def __init__(self, robot_ip: str = "192.168.1.6", dashboard_port: int = 29999, 
                  move_port: int = 30003, feed_port: int = 30004):
         """
-        Initialize robot connection
+        Initialize robot connection manager
         
         Args:
             robot_ip: IP address of the robot
@@ -183,12 +148,9 @@ class RobotConnection:
         self.dashboard = None
         self.feedbacks = None
         
-        # Movement parameters
-        self.position_tolerance = 5.0  # mm
-        self.safe_packing_position = [250, 0, 300, 0, 0, 0]  # Safe packing position
-        
-        # Robot state
-        self.initial_position = None
+        # Connection state
+        self.is_connected = False
+        self.is_enabled = False
     
     def test_network_connectivity(self) -> Tuple[bool, str]:
         """
@@ -218,8 +180,6 @@ class RobotConnection:
         Returns:
             (success, message): Success flag and status message
         """
-        
-    
         if not ROBOT_API_AVAILABLE:
             return False, "Robot API not available"
         
@@ -232,6 +192,7 @@ class RobotConnection:
             
             if mode_response and len(mode_response) > 0:
                 robot_mode = mode_response[0] if isinstance(mode_response, list) else mode_response
+                self.is_connected = True
                 return True, f"Connected, Robot mode: {robot_mode}"
             else:
                 return False, "No response from robot"
@@ -256,6 +217,8 @@ class RobotConnection:
                     print(f"Note: Error during disconnect: {e}")
             finally:
                 self.dashboard = None
+                self.is_connected = False
+                self.is_enabled = False
         
         if self.feedbacks:
             try:
@@ -270,30 +233,29 @@ class RobotConnection:
     
     def check_robot_alarms(self, description: str = "Checking for robot alarms") -> Tuple[bool, List[str]]:
         """
-        Check for robot alarms using helper functions
+        Check and parse robot alarms
         
         Args:
-            description: Description to print
+            description: Description for progress display
             
         Returns:
-            (alarm_ok, error_codes): Whether alarms are OK and list of error codes if any
+            (alarm_ok, error_numbers): Whether alarms are OK and list of error codes
         """
-        print(f"{description}...")
-        
         try:
             success, message, alarm_response = execute_robot_command(self.dashboard, "GetErrorID")
             if not success:
-                return False, [message]
-                
+                print(f"Could not check alarms: {message}")
+                return True, []  # Assume OK if we can't check
+            
             print(f"Raw alarm response: {alarm_response}")
             
-            # Use helper to check for OK status
-            if parse_api_response(alarm_response, "status"):
-                print("✅ No active alarms detected")
-                return True, []
-            
-            # Extract error codes using helper
+            # Extract error numbers using helper
             error_numbers = parse_api_response(alarm_response, "numbers")
+            if not error_numbers:
+                print("✅ No alarms detected")
+                return True, []
+                
+            # Filter out normal status codes (1-6 are typically normal operational codes)
             actual_errors = [e for e in error_numbers if float(e) > 0 and e not in ['1', '2', '3', '4', '5', '6']]
             
             if actual_errors:
@@ -309,18 +271,13 @@ class RobotConnection:
             return True, []  # Assume OK if we can't check
     
     def clear_errors(self) -> Tuple[bool, str]:
-        """
-        Clear any existing errors on the robot using helper function
-        
-        Returns:
-            (success, message): Success flag and result message
-        """
+        """Clear robot errors"""
         success, message, result = execute_robot_command(self.dashboard, "ClearError")
         return success, f"Clear errors result: {result}" if success else message
     
     def get_robot_mode(self) -> Tuple[int, str]:
         """
-        Get the current robot mode using helper functions
+        Get the current robot mode
         
         Returns:
             (mode, description): Robot mode as int and description
@@ -330,7 +287,7 @@ class RobotConnection:
             return 0, message
             
         print(f"Raw robot mode response: {mode_response}")
-          # Extract numeric mode using helper
+        # Extract numeric mode
         actual_mode = parse_api_response(mode_response, "first_number")
         
         # Mode descriptions (updated for CR3 accuracy)
@@ -359,6 +316,7 @@ class RobotConnection:
         # Check if already in operational mode (3=Ready or 5=Running)
         if actual_mode in [3, 5]:
             print(f"✅ Robot is already operational (Mode {actual_mode}: {description})")
+            self.is_enabled = True
             return True, f"Robot is already operational (Mode {actual_mode}: {description})"
         
         # Send enable command using helper
@@ -379,158 +337,74 @@ class RobotConnection:
         
         if mode_ok:
             final_mode, final_description = self.get_robot_mode()
+            self.is_enabled = True
             return True, f"Robot enabled successfully after {elapsed_time:.1f}s (Mode {final_mode}: {final_description})"
         else:
             final_mode, final_description = self.get_robot_mode()
             return False, f"Robot enable timeout - Current mode: {final_mode} ({final_description}). May need manual intervention."
     
-    def get_position(self) -> Tuple[bool, List[float]]:
+    def get_dashboard(self):
         """
-        Get current robot position using helper functions
+        Get the dashboard connection for use by robot control module
         
         Returns:
-            (success, position): Success flag and position as [x,y,z,rx,ry,rz]
+            dashboard: The dashboard connection object or None
         """
-        success, message, pos_response = execute_robot_command(self.dashboard, "GetPose")
-        if not success:
-            return False, []
-            
-        print(f"Raw position response: {pos_response}")
-        
-        # Extract numeric values using helper
-        numbers = parse_api_response(pos_response, "numbers")
-        if len(numbers) >= 6:
-            position = [float(n) for n in numbers[:6]]
-            print(f"Current position: X={position[0]:.1f}, Y={position[1]:.1f}, Z={position[2]:.1f}")
-            return True, position
-        else:
-            return False, []
+        return self.dashboard
     
-    def move_to_position(self, position: List[float], 
-                        move_type: str = "MovJ", 
-                        wait_time: float = 5.0) -> Tuple[bool, str]:
+    def is_robot_connected(self) -> bool:
         """
-        Move the robot to a position using helper functions
+        Check if robot is connected
         
-        Args:
-            position: Target position as [x,y,z,rx,ry,rz]
-            move_type: Movement type (MovJ or MovL)
-            wait_time: Time to wait for movement completion
-            
         Returns:
-            (success, message): Success flag and status message
+            bool: True if connected, False otherwise
         """
-        if len(position) < 6:
-            return False, "Invalid position - need 6 values"
-              # Execute movement command using helper
-        if move_type == "MovL":
-            success, message, result = execute_robot_command(
-                self.dashboard, "MovL", 
-                position[0], position[1], position[2],
-                position[3], position[4], position[5],
-                coordinateMode=0
-            )        
-        else:
-            # MovJ movement
-            success, message, result = execute_robot_command(
-                self.dashboard, "MovJ", 
-                position[0], position[1], position[2],
-                position[3], position[4], position[5],
-                coordinateMode=0
-            )
-            
-        if not success:
-            return False, message
-            
-        print(f"Move command response: {result}")
-        
-        # Wait for movement completion using helper
-        wait_with_progress("Waiting for movement to complete", wait_time)
-        
-        # Verify final position using helper
-        success, final_pos = self.get_position()
-        if not success:
-            return False, "Could not verify final position"
-            
-        within_tolerance, distance = validate_position(final_pos, position, self.position_tolerance)
-        print(f"Distance from target: {distance:.1f}mm")
-        
-        return within_tolerance, f"Movement successful (distance: {distance:.1f}mm)" if within_tolerance else f"Position error: {distance:.1f}mm from target"
+        return self.is_connected and self.dashboard is not None
     
-    def test_movement(self, use_packing_position: bool = True) -> Tuple[bool, str]:
+    def is_robot_enabled(self) -> bool:
         """
-        Perform a simple movement test using helper functions
+        Check if robot is enabled
         
-        Args:
-            use_packing_position: Whether to use the safe packing position or just move a small amount
-            
         Returns:
-            (success, message): Success flag and status message
+            bool: True if enabled, False otherwise
         """
-        # Store initial position if not already stored
-        if not self.initial_position:
-            success, position = self.get_position()
-            if not success:
-                return False, "Could not get initial position"
-            self.initial_position = position
-        
-        print(f"Initial position: {self.initial_position}")
-          # Determine target position
-        if use_packing_position:
-            target_position = self.safe_packing_position.copy()
-            # Use safe orientation values [0, 0, 0] instead of complex initial orientation
-            print("Moving to safe packing position with safe orientation...")
-        else:
-            target_position = self.initial_position.copy()
-            target_position[2] += 50  # Move slightly up (+50mm in Z)
-            print("Moving slightly up (+50mm in Z)...")
-        
-        # Move to target position
-        success, message = self.move_to_position(target_position)
-        if not success:
-            return False, f"Failed to move to target: {message}"
-        
-        # Return to initial position
-        print("Returning to initial position...")
-        success, message = self.move_to_position(self.initial_position)
-        if not success:
-            return False, f"Failed to return to initial position: {message}"
-        
-        # Verify return position using helper
-        success, final_pos = self.get_position()
-        if not success:
-            return False, "Could not verify final position"
-        
-        within_tolerance, return_distance = validate_position(final_pos, self.initial_position, self.position_tolerance)
-        print(f"Distance from initial position: {return_distance:.1f}mm")
-        
-        return within_tolerance, f"Movement test successful! (Return accuracy: {return_distance:.1f}mm)" if within_tolerance else f"Return position error: {return_distance:.1f}mm from initial position"
-  
+        return self.is_enabled
+
+
 # Simple usage example
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Robot Utilities Test")
+    parser = argparse.ArgumentParser(description="Robot Connection Test")
     parser.add_argument("--robot-ip", default="192.168.1.6", 
                        help="Robot IP address (default: 192.168.1.6)")
-    parser.add_argument("--quick", action="store_true", 
-                       help="Run quick test without movement")
     
     args = parser.parse_args()
     
     # Create robot connection
-    robot = RobotConnection(args.robot_ip)
+    robot_conn = RobotConnection(args.robot_ip)
     
     try:
-        # Run tests
-        success, results, messages = robot.perform_preflight_check()
+        # Test connection
+        print("Testing network connectivity...")
+        success, message = robot_conn.test_network_connectivity()
+        print(f"Network: {message}")
         
-        # Exit with appropriate code
-        sys.exit(0 if success else 1)
+        if success:
+            print("Connecting to robot...")
+            success, message = robot_conn.connect()
+            print(f"Connection: {message}")
+            
+            if success:
+                print("Checking alarms...")
+                alarm_ok, errors = robot_conn.check_robot_alarms()
+                
+                print("Enabling robot...")
+                success, message = robot_conn.enable_robot()
+                print(f"Enable: {message}")
         
     except KeyboardInterrupt:
         print("\n\n⏹️ Test cancelled by user")
-        sys.exit(1)
     finally:
         # Always disconnect properly
-        robot.disconnect()
+        robot_conn.disconnect()

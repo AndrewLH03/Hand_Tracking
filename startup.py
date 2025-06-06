@@ -14,7 +14,8 @@ import os
 from pathlib import Path
 
 # Import robot utilities
-from robot_control.robot_utils import RobotConnection, ROBOT_API_AVAILABLE
+from robot_control.robot_control import RobotSystem
+from robot_control.robot_connection import ROBOT_API_AVAILABLE
 
 def check_dependencies():
     """Check if all required dependencies are available"""
@@ -91,12 +92,12 @@ def test_robot_movement(robot_ip):
     print(f"\\n🔧 Testing robot movement...")
     print(f"Connecting to robot at {robot_ip}...")
     
-    # Create a RobotConnection instance
-    robot = RobotConnection(robot_ip)
+    # Create a RobotSystem instance
+    robot_system = RobotSystem(robot_ip)
     
     try:
         # Step 1: Test network connectivity
-        success, message = robot.test_network_connectivity()
+        success, message = robot_system.connection.test_network_connectivity()
         if not success:
             print(f"❌ Network connectivity test failed: {message}")
             response = input("\\nContinue anyway? (y/N): ")
@@ -104,7 +105,7 @@ def test_robot_movement(robot_ip):
         print(f"✓ Network connection: {message}")
         
         # Step 2: Connect to robot
-        success, message = robot.connect()
+        success, message = robot_system.connection.connect()
         if not success:
             print(f"❌ Robot connection failed: {message}")
             response = input("\\nContinue anyway? (y/N): ")
@@ -112,7 +113,7 @@ def test_robot_movement(robot_ip):
         print(f"✓ Robot connection: {message}")
         
         # Step 3: Enable robot
-        success, message = robot.enable_robot()
+        success, message = robot_system.connection.enable_robot()
         if not success:
             print(f"❌ Robot enablement failed: {message}")
             response = input("\\nContinue anyway? (y/N): ")
@@ -120,7 +121,7 @@ def test_robot_movement(robot_ip):
         print(f"✓ Robot enabled: {message}")
         
         # Step 4: Perform movement test
-        success, message = robot.test_movement(use_packing_position=True)
+        success, message = robot_system.controller.test_movement(use_packing_position=True)
         if not success:
             print(f"❌ Movement test failed: {message}")
             response = input("\\nContinue anyway? (y/N): ")
@@ -142,7 +143,7 @@ def test_robot_movement(robot_ip):
         
     finally:
         # Clean up connections
-        robot.disconnect()
+        robot_system.connection.disconnect()
 
 def start_hand_tracking(robot_host, robot_port, hand, mirror):
     """Start the hand tracking"""
