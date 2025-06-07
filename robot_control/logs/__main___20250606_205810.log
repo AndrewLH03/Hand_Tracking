@@ -1,0 +1,21 @@
+2025-06-06 20:58:10 - __main__ - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\robot_control\logs\__main___20250606_205810.log
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Package Imports
+2025-06-06 20:58:10 - __main__ - INFO - ✅ PASS Package Imports: All 31 symbols imported successfully (0.00s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Backward Compatibility
+2025-06-06 20:58:10 - __main__ - INFO - ✅ PASS Backward Compatibility: Backward compatibility verified for 3 import groups (0.00s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Core API Classes
+2025-06-06 20:58:10 - __main__ - INFO - ✅ PASS Core API Classes: Core API classes instantiated: DobotApiDashboard, DobotApiFeedback, ConnectionManager, RobotStatusMonitor (0.00s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Utility Functions
+2025-06-06 20:58:10 - __main__ - INFO - ❌ FAIL Utility Functions: Utility function test failed: parse_api_response() got an unexpected keyword argument 'expected_format' (0.00s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Robot Controller Creation
+2025-06-06 20:58:10 - __main__ - INFO - ❌ FAIL Robot Controller Creation: Robot controller test failed:  (0.00s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: ROS Bridge Functionality
+2025-06-06 20:58:10 - __main__ - INFO - ❌ FAIL ROS Bridge Functionality: ROS bridge test failed: LOGGING (0.01s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Error Handling
+2025-06-06 20:58:10 - __main__ - INFO - ❌ FAIL Error Handling: Error handling test failed: Always fails (0.64s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Integration Scenarios
+2025-06-06 20:58:10 - __main__ - INFO - ❌ FAIL Integration Scenarios: Integration test failed:  (0.01s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Performance Regression
+2025-06-06 20:58:10 - __main__ - INFO - ❌ FAIL Performance Regression: Performance test failed: parse_api_response() got an unexpected keyword argument 'expected_format' (0.00s)
+2025-06-06 20:58:10 - __main__ - INFO - Running test: Thread Safety
+2025-06-06 20:58:10 - __main__ - INFO - ❌ FAIL Thread Safety: Thread safety errors: Thread 0 error: parse_api_response() got an unexpected keyword argument 'expected_format'; Thread 1 error: parse_api_response() got an unexpected keyword argument 'expected_format'; Thread 2 error: parse_api_response() got an unexpected keyword argument 'expected_format'; Thread 3 error: parse_api_response() got an unexpected keyword argument 'expected_format'; Thread 4 error: parse_api_response() got an unexpected keyword argument 'expected_format' (0.00s)

@@ -1,0 +1,163 @@
+# Phase 5 Motion Planning Configuration
+# ====================================
+# Configuration file for advanced motion planning system
+
+# Robot Configuration
+robot:
+  name: "CR3_Robotic_Arm"
+  joint_count: 6
+  
+  # Joint limits (degrees)
+  joint_limits:
+    joint_1: [-180, 180]
+    joint_2: [-135, 135]
+    joint_3: [-150, 150]
+    joint_4: [-180, 180]
+    joint_5: [-135, 135]
+    joint_6: [-360, 360]
+  
+  # Maximum velocities (degrees/second)
+  max_velocities:
+    joint_1: 90
+    joint_2: 90
+    joint_3: 90
+    joint_4: 120
+    joint_5: 120
+    joint_6: 180
+  
+  # Maximum accelerations (degrees/second^2)
+  max_accelerations:
+    joint_1: 180
+    joint_2: 180
+    joint_3: 180
+    joint_4: 240
+    joint_5: 240
+    joint_6: 360
+
+# Workspace Configuration
+workspace:
+  # Cartesian limits (mm)
+  x_limits: [-800, 800]
+  y_limits: [-800, 800]
+  z_limits: [0, 1200]
+  
+  # Safety zones (mm) - areas to avoid
+  safety_zones:
+    - name: "Base Safety Zone"
+      center: [0, 0, 0]
+      radius: 150
+    - name: "Collision Avoidance Zone"
+      center: [0, 0, 600]
+      radius: 100
+
+# Trajectory Planning Configuration
+trajectory_planning:
+  # B-spline parameters
+  bspline:
+    degree: 3                    # Cubic B-splines
+    smoothing_factor: 0.001      # Smoothing parameter
+    resolution: 100              # Points per second
+  
+  # Optimization parameters
+  optimization:
+    max_iterations: 1000         # Maximum optimization iterations
+    convergence_tolerance: 1e-6  # Convergence criterion
+    velocity_weight: 1.0         # Velocity optimization weight
+    acceleration_weight: 2.0     # Acceleration optimization weight
+    jerk_weight: 3.0            # Jerk minimization weight
+  
+  # Constraint parameters
+  constraints:
+    position_tolerance: 0.1      # Position constraint tolerance (degrees)
+    velocity_margin: 0.9         # Velocity constraint margin (0-1)
+    acceleration_margin: 0.8     # Acceleration constraint margin (0-1)
+
+# Motion Control Configuration
+motion_control:
+  # Control loop parameters
+  control_frequency: 50.0        # Hz
+  update_rate: 0.02             # seconds (1/frequency)
+  
+  # PID controller parameters (per joint)
+  pid_parameters:
+    position:
+      kp: 2.0                   # Proportional gain
+      ki: 0.1                   # Integral gain
+      kd: 0.05                  # Derivative gain
+    velocity:
+      kp: 1.0
+      ki: 0.05
+      kd: 0.02
+  
+  # Safety parameters
+  safety:
+    emergency_stop_deceleration: 500.0  # degrees/s^2
+    position_error_threshold: 5.0       # degrees
+    velocity_error_threshold: 20.0      # degrees/s
+    timeout_duration: 10.0              # seconds
+
+# Performance Targets
+performance:
+  trajectory_calculation_time: 0.1      # seconds (100ms target)
+  control_loop_jitter: 0.001           # seconds max jitter
+  position_accuracy: 1.0               # mm
+  velocity_smoothness: 0.95            # smoothness metric (0-1)
+  
+  # Benchmarking parameters
+  benchmark:
+    test_iterations: 10
+    load_test_trajectories: 5
+    performance_threshold: 0.9         # Success rate threshold
+
+# Logging Configuration
+logging:
+  level: "INFO"                        # DEBUG, INFO, WARNING, ERROR
+  enable_performance_logging: true
+  enable_trajectory_logging: true
+  enable_safety_logging: true
+  
+  # Log file settings
+  log_files:
+    trajectory: "logs/trajectory_planning.log"
+    motion_control: "logs/motion_control.log"
+    performance: "logs/performance_metrics.log"
+    safety: "logs/safety_events.log"
+
+# Integration Configuration
+integration:
+  # Phase 4 compatibility
+  phase4_compatibility: true
+  migration_bridge_enabled: true
+  
+  # Communication settings
+  tcp_api:
+    enabled: true
+    timeout: 5.0                       # seconds
+  
+  ros_bridge:
+    enabled: true
+    update_rate: 50.0                  # Hz
+    
+  # Fallback settings
+  fallback:
+    enable_tcp_fallback: true
+    fallback_timeout: 2.0              # seconds
+
+# Development Settings
+development:
+  debug_mode: false
+  simulation_mode: false
+  enable_visualization: true
+  test_mode: false
+  
+  # Visualization settings
+  visualization:
+    plot_trajectories: true
+    save_plots: true
+    plot_directory: "phase5_motion_planning/plots/"
+    
+  # Testing settings
+  testing:
+    run_validation_tests: true
+    enable_performance_benchmarks: true
+    generate_test_reports: true

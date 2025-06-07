@@ -4,5 +4,6 @@
         "markdown": true,
         "scminput": true
     },
-    "github.copilot.nextEditSuggestions.enabled": true
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "cmake.sourceDirectory": "C:/Users/maboy/OneDrive/Desktop/Robotic_Arm/Hand_Tracking/TCP-IP-ROS-6AXis/cr3_moveit"
 }

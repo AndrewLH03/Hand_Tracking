@@ -8,7 +8,7 @@ to eliminate code duplication and provide consistent testing behavior.
 """
 
 from typing import Dict, Tuple, Optional
-from robot_control.robot_control import RobotSystem
+from robot_control import RobotSystem
 
 
 class RobotTester:

@@ -1,0 +1,5 @@
+2025-06-06 20:58:58 - robot_control.robot_controller - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\robot_control\logs\robot_control.robot_controller_20250606_205858.log
+2025-06-06 20:58:58 - robot_control.robot_controller - INFO - Robot controller initialized for 192.168.1.6
+2025-06-06 20:58:58 - robot_control.robot_controller - INFO - Hand tracking server initialized on port 8888
+2025-06-06 20:58:59 - robot_control.robot_controller - INFO - Robot controller initialized for 192.168.1.6
+2025-06-06 20:58:59 - robot_control.robot_controller - INFO - Hand tracking server initialized on port 8888
