@@ -390,10 +390,8 @@ Test Suites:
 Examples:
   python master_test_runner.py
   python master_test_runner.py --robot-ip 192.168.1.100
-  python master_test_runner.py --verbose --output results.json
-        """
+  python master_test_runner.py --verbose --output results.json        """
     )
-    
     parser.add_argument(
         "--robot-ip", 
         default="192.168.1.6",
@@ -402,7 +400,8 @@ Examples:
     parser.add_argument(
         "--output", 
         help="Output file for detailed results (JSON format)"
-    )    parser.add_argument(
+    )
+    parser.add_argument(
         "--verbose", 
         action="store_true",
         help="Enable verbose logging output"

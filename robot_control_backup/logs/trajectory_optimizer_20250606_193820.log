@@ -1,4 +1,0 @@
-2025-06-06 19:38:20 - trajectory_optimizer - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\..\phase5_motion_planning\..\robot_control\logs\trajectory_optimizer_20250606_193820.log
-2025-06-06 19:38:20 - trajectory_optimizer - INFO - 🚀 Trajectory Optimizer initialized with Phase 4 integration
-2025-06-06 19:38:20 - trajectory_optimizer - INFO - ✅ Advanced Trajectory Optimizer ready
-2025-06-06 19:38:20 - trajectory_optimizer - INFO - 📊 Constraints: max_vel=100.0, max_acc=500.0
