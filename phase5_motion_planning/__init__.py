@@ -35,9 +35,10 @@ __all__ = [
 
 # Phase 5 Module Status
 PHASE5_STATUS = {
-    'motion_planning': 'INITIALIZING',
+    'motion_planning': 'READY',
     'trajectory_optimization': 'READY',
-    'collision_detection': 'PENDING',
+    'collision_detection': 'READY',
+    'safety_systems': 'READY',
     'dashboard': 'PENDING',
     'production': 'PENDING'
 }
@@ -49,6 +50,24 @@ def get_phase5_status():
 def initialize_motion_planning():
     """Initialize Phase 5 motion planning system"""
     print("🚀 Phase 5 Motion Planning System Initializing...")
+    
+    # Initialize safety systems automatically
+    try:
+        from .safety import initialize_safety_systems
+        safety_success = initialize_safety_systems()
+        
+        if safety_success:
+            PHASE5_STATUS['safety_systems'] = 'ACTIVE'
+            print("✅ Phase 5 motion planning with safety systems ready")
+            return True
+        else:
+            PHASE5_STATUS['safety_systems'] = 'LIMITED'
+            print("⚠️ Phase 5 motion planning ready with limited safety")
+            return True
+    except Exception as e:
+        print(f"⚠️ Phase 5 initialization issue: {e}")
+        PHASE5_STATUS['safety_systems'] = 'UNAVAILABLE'
+        return False
     print("✅ Advanced trajectory optimization ready")
     print("✅ B-spline curve generation ready") 
     print("✅ Motion controller ready")

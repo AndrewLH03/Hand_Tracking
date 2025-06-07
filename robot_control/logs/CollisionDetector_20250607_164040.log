@@ -1,0 +1,13 @@
+2025-06-07 16:40:40 - CollisionDetector - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\safety\..\..\robot_control\logs\CollisionDetector_20250607_164040.log
+2025-06-07 16:40:40 - CollisionDetector - INFO - 🛡️ Collision detector initialized
+2025-06-07 16:40:40 - CollisionDetector - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\safety\..\..\robot_control\logs\CollisionDetector_20250607_164040.log
+2025-06-07 16:40:40 - CollisionDetector - INFO - 🛡️ Collision detector initialized
+2025-06-07 16:40:40 - CollisionDetector - INFO - 🛡️ Added safety zone: test_zone
+2025-06-07 16:40:40 - CollisionDetector - WARNING - ⚠️ Safety zone violation: test_zone
+2025-06-07 16:40:40 - CollisionDetector - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\safety\..\..\robot_control\logs\CollisionDetector_20250607_164040.log
+2025-06-07 16:40:40 - CollisionDetector - INFO - 🛡️ Collision detector initialized
+2025-06-07 16:40:40 - CollisionDetector - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\safety\..\..\robot_control\logs\CollisionDetector_20250607_164040.log
+2025-06-07 16:40:40 - CollisionDetector - INFO - 🛡️ Collision detector initialized
+2025-06-07 16:40:40 - CollisionDetector - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\safety\..\..\robot_control\logs\CollisionDetector_20250607_164040.log
+2025-06-07 16:40:40 - CollisionDetector - INFO - 🛡️ Collision detector initialized
+2025-06-07 16:40:40 - CollisionDetector - INFO - 🛡️ Collision monitoring started

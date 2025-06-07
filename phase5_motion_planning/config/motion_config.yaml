@@ -88,13 +88,127 @@ motion_control:
       kp: 1.0
       ki: 0.05
       kd: 0.02
-  
-  # Safety parameters
+    # Safety parameters
   safety:
     emergency_stop_deceleration: 500.0  # degrees/s^2
     position_error_threshold: 5.0       # degrees
     velocity_error_threshold: 20.0      # degrees/s
     timeout_duration: 10.0              # seconds
+
+# Phase 5 Safety Configuration
+safety_systems:
+  # Collision Detection Settings
+  collision_detection:
+    enabled: true
+    update_rate: 1000.0                # Hz - High frequency collision checking
+    detection_margin: 50.0             # mm - Safety margin for collision detection
+    
+    # Workspace boundary monitoring
+    workspace_monitoring:
+      enabled: true
+      boundary_margin: 25.0            # mm - Margin from workspace boundaries
+      
+    # Self-collision detection
+    self_collision:
+      enabled: true
+      link_separation_threshold: 100.0  # mm - Minimum distance between links
+      check_interval: 0.001             # seconds - Check every 1ms
+      
+    # Safety zone configuration
+    safety_zones:
+      enabled: true
+      zones:
+        - name: "Base Protection Zone"
+          type: "cylinder"
+          center: [0, 0, 0]
+          radius: 200.0                 # mm
+          height: 300.0                 # mm
+          margin: 50.0                  # mm
+        - name: "Operator Safety Zone"
+          type: "sphere"
+          center: [400, 0, 600]
+          radius: 150.0                 # mm
+          margin: 75.0                  # mm
+  
+  # Safety Monitor Settings
+  safety_monitor:
+    enabled: true
+    monitoring_rate: 100.0             # Hz - Safety monitoring frequency
+    
+    # Alert levels and thresholds
+    alert_levels:
+      info_threshold: 0.1              # Low priority alerts
+      warning_threshold: 0.05          # Medium priority alerts  
+      critical_threshold: 0.02         # High priority alerts
+      emergency_threshold: 0.01        # Emergency alerts
+    
+    # Callback settings
+    callbacks:
+      enabled: true
+      max_callbacks: 10
+      callback_timeout: 0.5            # seconds
+    
+    # Safety validation
+    movement_validation:
+      enabled: true
+      validate_before_execution: true
+      validation_timeout: 1.0          # seconds
+      
+  # Emergency Stop Configuration
+  emergency_stop:
+    enabled: true
+    
+    # Emergency stop levels
+    stop_levels:
+      soft_stop:
+        deceleration: 100.0            # degrees/s^2
+        timeout: 2.0                   # seconds
+      hard_stop:
+        deceleration: 300.0            # degrees/s^2  
+        timeout: 0.5                   # seconds
+      emergency_halt:
+        immediate_stop: true
+        timeout: 0.1                   # seconds
+    
+    # Recovery procedures
+    recovery:
+      auto_recovery_enabled: false
+      manual_recovery_required: true
+      safety_check_before_recovery: true
+      recovery_timeout: 30.0           # seconds
+      
+    # Hardware integration
+    hardware_estop:
+      enabled: true
+      estop_input_pin: "emergency_stop"
+      estop_output_pin: "safety_relay"
+      
+  # Safety Testing Framework
+  safety_testing:
+    enabled: true
+    auto_test_on_startup: true
+    test_interval: 3600.0              # seconds - Test every hour
+    
+    # Test configurations
+    test_suites:
+      - name: "collision_detection_test"
+        enabled: true
+        timeout: 10.0
+      - name: "safety_monitor_test"
+        enabled: true
+        timeout: 5.0
+      - name: "emergency_stop_test"
+        enabled: true
+        timeout: 15.0
+      - name: "workspace_boundary_test"
+        enabled: true
+        timeout: 8.0
+      - name: "safety_zone_test"
+        enabled: true
+        timeout: 12.0
+      - name: "integration_test"
+        enabled: true
+        timeout: 20.0
 
 # Performance Targets
 performance:

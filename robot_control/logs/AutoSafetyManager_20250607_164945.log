@@ -1,0 +1,6 @@
+2025-06-07 16:49:45 - AutoSafetyManager - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\safety\..\..\robot_control\logs\AutoSafetyManager_20250607_164945.log
+2025-06-07 16:49:45 - AutoSafetyManager - INFO - 🛡️ Auto Safety Manager initialized
+2025-06-07 16:49:45 - AutoSafetyManager - INFO - 🛡️ Collision detector initialized
+2025-06-07 16:49:45 - AutoSafetyManager - INFO - 🛡️ Safety monitor initialized
+2025-06-07 16:49:45 - AutoSafetyManager - INFO - 🚨 Emergency stop system initialized
+2025-06-07 16:49:45 - AutoSafetyManager - ERROR - ⚠️ Safety system startup error: 'SafetyMonitor' object has no attribute 'set_collision_detector'

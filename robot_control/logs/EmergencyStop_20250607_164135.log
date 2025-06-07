@@ -1,0 +1,5 @@
+2025-06-07 16:41:35 - EmergencyStop - INFO - Migration logger initialized - Log file: C:\Users\maboy\OneDrive\Desktop\Robotic_Arm\Hand_Tracking\phase5_motion_planning\safety\..\..\robot_control\logs\EmergencyStop_20250607_164135.log
+2025-06-07 16:41:35 - EmergencyStop - INFO - 🚨 Emergency stop system initialized
+2025-06-07 16:41:35 - EmergencyStop - ERROR - 🚨 EMERGENCY STOP ACTIVATED: immediate_stop - Test emergency
+2025-06-07 16:41:35 - EmergencyStop - ERROR - 🚨 Reason: manual_trigger from test
+2025-06-07 16:41:35 - EmergencyStop - WARNING - ⚠️ FORCE RESET: Emergency stop state cleared
